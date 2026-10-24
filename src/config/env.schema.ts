@@ -7,6 +7,7 @@ export const envSchema = z.object({
     .url({ protocol: /^https?$/ })
     .refine((value) => !value.endsWith('/'), 'must not end with "/"')
     .default('http://localhost:9000'),
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 });
 
 export type Env = z.infer<typeof envSchema>;
