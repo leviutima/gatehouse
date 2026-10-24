@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, staging, main]
+  pull_request:
+    branches: [develop, staging, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: gatehouse
+          POSTGRES_USER: gatehouse
+          POSTGRES_PASSWORD: gatehouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gatehouse -d gatehouse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      PORT: 9000
+      GATEHOUSE_ISSUER: http://localhost:9000
+      DATABASE_URL: postgresql://gatehouse:gatehouse@localhost:5432/gatehouse?schema=public
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.16.0
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
+
+      - run: npm run build
+
+      - run: npm test
+
+      - run: npm run db:deploy
+
+      - run: npm run test:e2e
