@@ -8,3 +8,41 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum LoginIdentifier {
+  USERNAME
+  EMAIL
+  USERNAME_OR_EMAIL
+}
+
+model Realm {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  name            String          @unique
+  displayName     String          @map("display_name")
+  enabled         Boolean         @default(true)
+  loginIdentifier LoginIdentifier @default(USERNAME_OR_EMAIL) @map("login_identifier")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  users User[]
+
+  @@map("realms")
+}
+
+model User {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  realmId       String   @map("realm_id") @db.Uuid
+  username      String   @db.Citext
+  email         String   @db.Citext
+  emailVerified Boolean  @default(false) @map("email_verified")
+  passwordHash  String   @map("password_hash")
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
+
+  @@unique([realmId, username])
+  @@unique([realmId, email])
+  @@map("users")
+}
