@@ -21,15 +21,18 @@ describe('validateEnv', () => {
   });
 
   it('rejects an issuer that is not an http(s) URL', () => {
-    expect(() => validateEnv({ DATABASE_URL, GATEHOUSE_ISSUER: 'ftp://auth.example.com' })).toThrow(
-      /GATEHOUSE_ISSUER/,
-    );
+    expect(() =>
+      validateEnv({ DATABASE_URL, GATEHOUSE_ISSUER: 'ftp://auth.example.com' }),
+    ).toThrow(/GATEHOUSE_ISSUER/);
   });
 
   it('rejects an issuer with a trailing slash', () => {
-    expect(() => validateEnv({ DATABASE_URL, GATEHOUSE_ISSUER: 'https://auth.example.com/' })).toThrow(
-      /must not end with/,
-    );
+    expect(() =>
+      validateEnv({
+        DATABASE_URL,
+        GATEHOUSE_ISSUER: 'https://auth.example.com/',
+      }),
+    ).toThrow(/must not end with/);
   });
 
   it('requires DATABASE_URL', () => {
@@ -37,6 +40,8 @@ describe('validateEnv', () => {
   });
 
   it('rejects a DATABASE_URL that is not postgres', () => {
-    expect(() => validateEnv({ DATABASE_URL: 'mysql://user:pass@localhost/db' })).toThrow(/DATABASE_URL/);
+    expect(() =>
+      validateEnv({ DATABASE_URL: 'mysql://user:pass@localhost/db' }),
+    ).toThrow(/DATABASE_URL/);
   });
 });
