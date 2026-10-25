@@ -1,4 +1,4 @@
-name: CI
+name: Backend CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [develop, staging, main]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   test:
-    name: Lint, build and test
+    name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -40,6 +40,10 @@ jobs:
       GATEHOUSE_ISSUER: http://localhost:9000
       DATABASE_URL: postgresql://gatehouse:gatehouse@localhost:5432/gatehouse?schema=public
 
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
       - uses: actions/checkout@v5
 
@@ -47,6 +51,7 @@ jobs:
         with:
           node-version: 24.16.0
           cache: npm
+          cache-dependency-path: backend/package-lock.json
 
       - run: npm ci
 
