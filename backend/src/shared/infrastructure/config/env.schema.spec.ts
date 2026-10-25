@@ -44,4 +44,73 @@ describe('validateEnv', () => {
       validateEnv({ DATABASE_URL: 'mysql://user:pass@localhost/db' }),
     ).toThrow(/DATABASE_URL/);
   });
+
+  describe('initial admin', () => {
+    const admin = {
+      GATEHOUSE_ADMIN_USERNAME: 'admin',
+      GATEHOUSE_ADMIN_EMAIL: 'admin@example.com',
+      GATEHOUSE_ADMIN_PASSWORD: 'a-long-enough-password',
+    };
+
+    it('is optional as a whole', () => {
+      expect(validateEnv({ DATABASE_URL })).not.toHaveProperty(
+        'GATEHOUSE_ADMIN_PASSWORD',
+      );
+    });
+
+    it('accepts the three variables together', () => {
+      expect(validateEnv({ DATABASE_URL, ...admin })).toMatchObject(admin);
+    });
+
+    it('requires all three once any of them is set', () => {
+      expect(() =>
+        validateEnv({
+          DATABASE_URL,
+          GATEHOUSE_ADMIN_USERNAME: 'admin',
+        }),
+      ).toThrow(/GATEHOUSE_ADMIN_EMAIL[\s\S]*GATEHOUSE_ADMIN_PASSWORD/);
+    });
+
+    it('rejects a password shorter than 12 characters', () => {
+      expect(() =>
+        validateEnv({
+          DATABASE_URL,
+          ...admin,
+          GATEHOUSE_ADMIN_PASSWORD: 'short-pass1',
+        }),
+      ).toThrow(/GATEHOUSE_ADMIN_PASSWORD/);
+    });
+
+    it('rejects an invalid email', () => {
+      expect(() =>
+        validateEnv({
+          DATABASE_URL,
+          ...admin,
+          GATEHOUSE_ADMIN_EMAIL: 'not-an-email',
+        }),
+      ).toThrow(/GATEHOUSE_ADMIN_EMAIL/);
+    });
+
+    it('rejects a username with unsupported characters', () => {
+      expect(() =>
+        validateEnv({
+          DATABASE_URL,
+          ...admin,
+          GATEHOUSE_ADMIN_USERNAME: 'admin user',
+        }),
+      ).toThrow(/GATEHOUSE_ADMIN_USERNAME/);
+    });
+
+    it('trims the username but never the password', () => {
+      const env = validateEnv({
+        DATABASE_URL,
+        ...admin,
+        GATEHOUSE_ADMIN_USERNAME: '  admin  ',
+        GATEHOUSE_ADMIN_PASSWORD: '  spaced password  ',
+      });
+
+      expect(env.GATEHOUSE_ADMIN_USERNAME).toBe('admin');
+      expect(env.GATEHOUSE_ADMIN_PASSWORD).toBe('  spaced password  ');
+    });
+  });
 });
