@@ -1,0 +1,32 @@
+name: Branch flow
+
+on:
+  pull_request:
+    branches: [staging, main]
+    types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+jobs:
+  enforce:
+    name: Enforce branch flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check source branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          case "$BASE" in
+            main) allowed=staging ;;
+            staging) allowed=develop ;;
+            *) exit 0 ;;
+          esac
+          if [ "$HEAD_REPO" != "$REPO" ] || [ "$HEAD" != "$allowed" ]; then
+            echo "::error::$BASE only accepts pull requests from $allowed (got $HEAD_REPO:$HEAD)"
+            exit 1
+          fi
+          echo "$HEAD -> $BASE allowed"
