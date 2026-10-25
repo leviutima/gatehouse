@@ -31,6 +31,7 @@ class InMemoryRealmRepository extends RealmRepository {
     const realm = new Realm({
       id: `realm-${this.realms.length + 1}`,
       enabled: true,
+      passwordMinLength: 12,
       createdAt: now,
       updatedAt: now,
       ...data,

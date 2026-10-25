@@ -9,6 +9,7 @@ export const RealmMapper = {
       displayName: row.displayName,
       enabled: row.enabled,
       loginIdentifier: row.loginIdentifier,
+      passwordMinLength: row.passwordMinLength,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
