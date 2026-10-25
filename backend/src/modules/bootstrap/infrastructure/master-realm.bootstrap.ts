@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../shared/infrastructure/config/env.schema.js';
+import type { Env } from '../../../shared/infrastructure/config/env.schema.js';
 import {
   BootstrapMasterRealmUseCase,
   InitialAdmin,
-} from '../../application/use-cases/bootstrap-master-realm.use-case.js';
+} from '../application/use-cases/bootstrap-master-realm.use-case.js';
 
 @Injectable()
 export class MasterRealmBootstrap implements OnApplicationBootstrap {

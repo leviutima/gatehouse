@@ -5,12 +5,12 @@ import {
   CreateUserData,
   UserRepository,
 } from '../../../users/domain/repositories/user.repository.js';
-import { Realm } from '../../domain/entities/realm.entity.js';
-import { RealmAlreadyExistsError } from '../../domain/errors/realm-already-exists.error.js';
+import { Realm } from '../../../realms/domain/entities/realm.entity.js';
+import { RealmAlreadyExistsError } from '../../../realms/domain/errors/realm-already-exists.error.js';
 import {
   CreateRealmData,
   RealmRepository,
-} from '../../domain/repositories/realm.repository.js';
+} from '../../../realms/domain/repositories/realm.repository.js';
 import { MasterAdminNotConfiguredError } from '../errors/master-admin-not-configured.error.js';
 import { BootstrapMasterRealmUseCase } from './bootstrap-master-realm.use-case.js';
 

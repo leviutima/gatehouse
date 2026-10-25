@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { RealmsModule } from './modules/realms/realms.module.js';
+import { BootstrapModule } from './modules/bootstrap/bootstrap.module.js';
 import { TokenVerifier } from './shared/application/auth/token-verifier.js';
 import { DenyAllTokenVerifier } from './shared/infrastructure/auth/deny-all-token-verifier.js';
 import { CryptoModule } from './shared/infrastructure/crypto/crypto.module.js';
@@ -19,7 +19,7 @@ import { AccessTokenGuard } from './shared/presentation/guards/access-token.guar
     }),
     PrismaModule,
     CryptoModule,
-    RealmsModule,
+    BootstrapModule,
   ],
   controllers: [],
   providers: [

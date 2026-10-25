@@ -6,10 +6,10 @@ import { UserRepository } from '../../../users/domain/repositories/user.reposito
 import {
   MASTER_REALM_NAME,
   Realm,
-} from '../../domain/entities/realm.entity.js';
-import { RealmAlreadyExistsError } from '../../domain/errors/realm-already-exists.error.js';
-import { LoginIdentifier } from '../../domain/login-identifier.js';
-import { RealmRepository } from '../../domain/repositories/realm.repository.js';
+} from '../../../realms/domain/entities/realm.entity.js';
+import { RealmAlreadyExistsError } from '../../../realms/domain/errors/realm-already-exists.error.js';
+import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
+import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
 import { MasterAdminNotConfiguredError } from '../errors/master-admin-not-configured.error.js';
 
 export interface InitialAdmin {
