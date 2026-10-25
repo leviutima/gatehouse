@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './shared/infrastructure/config/env.schema.js';
-import { PrismaModule } from './prisma/prisma.module.js';
+import { PrismaModule } from './shared/infrastructure/prisma/prisma.module.js';
 
 @Module({
   imports: [
