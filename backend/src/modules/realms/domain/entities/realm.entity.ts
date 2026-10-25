@@ -56,7 +56,7 @@ export class Realm {
   }
 
   assertPasswordAllowed(password: string): void {
-    const length = [...password].length;
+    const length = Array.from(password).length;
     if (length < this.passwordMinLength || length > PASSWORD_MAX_LENGTH) {
       throw new WeakPasswordError(this.passwordMinLength, PASSWORD_MAX_LENGTH);
     }
