@@ -22,6 +22,22 @@ class FakeRoleRepository extends RoleRepository {
     return Promise.reject(new Error('not used'));
   }
 
+  list(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  listForUser(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  unassign(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
   countMembers(): Promise<number> {
     return Promise.resolve(0);
   }

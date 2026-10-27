@@ -14,8 +14,12 @@ export interface RoleAssignment {
 
 export abstract class RoleRepository {
   abstract findByName(realmId: string, name: string): Promise<Role | null>;
+  abstract list(realmId: string): Promise<Role[]>;
+  abstract listForUser(userId: string): Promise<Role[]>;
   abstract create(data: CreateRoleData): Promise<Role>;
+  abstract delete(roleId: string): Promise<void>;
   abstract assign(assignment: RoleAssignment): Promise<void>;
+  abstract unassign(userId: string, roleId: string): Promise<void>;
   abstract countMembers(roleId: string): Promise<number>;
   abstract countEnabledMembers(
     realmName: string,

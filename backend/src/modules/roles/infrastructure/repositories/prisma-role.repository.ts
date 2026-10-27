@@ -23,6 +23,30 @@ export class PrismaRoleRepository extends RoleRepository {
     return row ? RoleMapper.toDomain(row) : null;
   }
 
+  async list(realmId: string): Promise<Role[]> {
+    const rows = await this.prisma.db.role.findMany({
+      where: { realmId },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map((row) => RoleMapper.toDomain(row));
+  }
+
+  async listForUser(userId: string): Promise<Role[]> {
+    const rows = await this.prisma.db.role.findMany({
+      where: { users: { some: { userId } } },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map((row) => RoleMapper.toDomain(row));
+  }
+
+  async delete(roleId: string): Promise<void> {
+    await this.prisma.db.role.delete({ where: { id: roleId } });
+  }
+
+  async unassign(userId: string, roleId: string): Promise<void> {
+    await this.prisma.db.userRole.deleteMany({ where: { userId, roleId } });
+  }
+
   async create(data: CreateRoleData): Promise<Role> {
     try {
       const row = await this.prisma.db.role.create({ data });

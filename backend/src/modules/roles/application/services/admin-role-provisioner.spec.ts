@@ -48,6 +48,22 @@ class InMemoryRoleRepository extends RoleRepository {
     return Promise.resolve();
   }
 
+  list(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  listForUser(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  unassign(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
   countMembers(roleId: string): Promise<number> {
     return Promise.resolve(
       this.assignments.filter((assignment) => assignment.roleId === roleId)
