@@ -3,12 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
+import { OidcModule } from './modules/oidc/oidc.module.js';
 import { SigningKeysModule } from './modules/signing-keys/signing-keys.module.js';
 import { TokenVerifier } from './shared/application/auth/token-verifier.js';
 import { DenyAllTokenVerifier } from './shared/infrastructure/auth/deny-all-token-verifier.js';
 import { CryptoModule } from './shared/infrastructure/crypto/crypto.module.js';
 import { validateEnv } from './shared/infrastructure/config/env.schema.js';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module.js';
+import { TimeModule } from './shared/infrastructure/time/time.module.js';
 import { DomainErrorFilter } from './shared/presentation/filters/domain-error.filter.js';
 import { AccessTokenGuard } from './shared/presentation/guards/access-token.guard.js';
 
@@ -21,9 +23,11 @@ import { AccessTokenGuard } from './shared/presentation/guards/access-token.guar
     }),
     PrismaModule,
     CryptoModule,
+    TimeModule,
     BootstrapModule,
     ClientsModule,
     SigningKeysModule,
+    OidcModule,
   ],
   controllers: [],
   providers: [

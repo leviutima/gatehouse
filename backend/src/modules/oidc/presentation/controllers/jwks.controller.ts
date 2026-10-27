@@ -9,7 +9,7 @@ import {
 import { Public } from '../../../../shared/presentation/decorators/public.decorator.js';
 import { errorResponseSchema } from '../../../../shared/presentation/openapi/error-response.schema.js';
 import { openApiSchema } from '../../../../shared/presentation/openapi/openapi-schema.js';
-import { GetRealmJwksUseCase } from '../../application/use-cases/get-realm-jwks.use-case.js';
+import { GetRealmJwksUseCase } from '../../../signing-keys/application/use-cases/get-realm-jwks.use-case.js';
 import {
   JwkSetResponse,
   jwkSetResponseSchema,
