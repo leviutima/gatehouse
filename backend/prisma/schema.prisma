@@ -26,6 +26,11 @@ enum GrantType {
   CLIENT_CREDENTIALS
 }
 
+enum SigningKeyStatus {
+  ACTIVE
+  PASSIVE
+}
+
 model Realm {
   id                String          @id @default(uuid(7)) @db.Uuid
   name              String          @unique
@@ -36,8 +41,9 @@ model Realm {
   createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  users   User[]
-  clients Client[]
+  users       User[]
+  clients     Client[]
+  signingKeys SigningKey[]
 
   @@map("realms")
 }
@@ -77,4 +83,20 @@ model Client {
 
   @@unique([realmId, clientId])
   @@map("clients")
+}
+
+model SigningKey {
+  id                  String           @id @default(uuid(7)) @db.Uuid
+  realmId             String           @map("realm_id") @db.Uuid
+  algorithm           String           @default("ES256")
+  status              SigningKeyStatus
+  publicJwk           Json             @map("public_jwk")
+  encryptedPrivateKey String           @map("encrypted_private_key")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
+
+  @@index([realmId, status])
+  @@map("signing_keys")
 }
