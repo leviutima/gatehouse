@@ -1,6 +1,6 @@
 import { UsernameRequiredError } from '../errors/username-required.error.js';
-import { WeakPasswordError } from '../errors/weak-password.error.js';
 import { LoginIdentifier } from '../login-identifier.js';
+import { PasswordPolicy } from '../password-policy.js';
 import { Realm, RealmProps } from './realm.entity.js';
 
 function realm(overrides: Partial<RealmProps> = {}): Realm {
@@ -57,38 +57,9 @@ describe('Realm', () => {
     });
   });
 
-  describe('assertPasswordAllowed', () => {
-    it('accepts a password at the minimum length', () => {
-      expect(() =>
-        realm({ passwordMinLength: 12 }).assertPasswordAllowed('a'.repeat(12)),
-      ).not.toThrow();
-    });
-
-    it('rejects a password below the minimum length', () => {
-      expect(() =>
-        realm({ passwordMinLength: 12 }).assertPasswordAllowed('a'.repeat(11)),
-      ).toThrow(WeakPasswordError);
-    });
-
-    it('rejects a password above 256 characters', () => {
-      expect(() => realm().assertPasswordAllowed('a'.repeat(257))).toThrow(
-        WeakPasswordError,
-      );
-    });
-
-    it('counts characters, not UTF-16 code units', () => {
-      const twelveEmoji = '🔒'.repeat(12);
-
-      expect(twelveEmoji.length).toBe(24);
-      expect(() =>
-        realm({ passwordMinLength: 13 }).assertPasswordAllowed(twelveEmoji),
-      ).toThrow(WeakPasswordError);
-    });
-
-    it('does not demand uppercase, digits or symbols', () => {
-      expect(() =>
-        realm().assertPasswordAllowed('correct horse battery staple'),
-      ).not.toThrow();
-    });
+  it('exposes its password policy', () => {
+    expect(realm({ passwordMinLength: 16 }).passwordPolicy).toEqual(
+      new PasswordPolicy(16, 256),
+    );
   });
 });

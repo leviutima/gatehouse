@@ -1,9 +1,8 @@
 import { UsernameRequiredError } from '../errors/username-required.error.js';
-import { WeakPasswordError } from '../errors/weak-password.error.js';
 import { LoginIdentifier } from '../login-identifier.js';
+import { PasswordPolicy } from '../password-policy.js';
 
 export const MASTER_REALM_NAME = 'master';
-export const PASSWORD_MAX_LENGTH = 256;
 
 export interface RealmProps {
   id: string;
@@ -55,10 +54,7 @@ export class Realm {
     return input.username;
   }
 
-  assertPasswordAllowed(password: string): void {
-    const length = Array.from(password).length;
-    if (length < this.passwordMinLength || length > PASSWORD_MAX_LENGTH) {
-      throw new WeakPasswordError(this.passwordMinLength, PASSWORD_MAX_LENGTH);
-    }
+  get passwordPolicy(): PasswordPolicy {
+    return new PasswordPolicy(this.passwordMinLength);
   }
 }

@@ -31,7 +31,7 @@ export class CreateUserUseCase {
     if (!realm.usesEmailAsUsername) {
       assertValidUsername(username);
     }
-    realm.assertPasswordAllowed(input.password);
+    realm.passwordPolicy.assertAllowed(input.password);
 
     const passwordHash = await this.passwordHasher.hash(input.password);
 
