@@ -12,7 +12,7 @@ export class PrismaService
 {
   private readonly transactions =
     new AsyncLocalStorage<Prisma.TransactionClient>();
-  private readonly client: Prisma.TransactionClient;
+  private readonly root: Prisma.TransactionClient;
 
   constructor(config: ConfigService<Env, true>) {
     super({
@@ -20,11 +20,11 @@ export class PrismaService
         connectionString: config.get('DATABASE_URL', { infer: true }),
       }),
     });
-    this.client = this;
+    this.root = this;
   }
 
   get db(): Prisma.TransactionClient {
-    return this.transactions.getStore() ?? this.client;
+    return this.transactions.getStore() ?? this.root;
   }
 
   transaction<T>(work: () => Promise<T>): Promise<T> {
