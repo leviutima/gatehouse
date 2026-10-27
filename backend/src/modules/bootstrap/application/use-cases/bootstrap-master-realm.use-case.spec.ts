@@ -150,6 +150,10 @@ class InMemoryRoleRepository extends RoleRepository {
     );
   }
 
+  countEnabledMembers(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
   isUserInRole(): Promise<boolean> {
     return Promise.resolve(false);
   }

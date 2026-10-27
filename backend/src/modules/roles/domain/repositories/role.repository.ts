@@ -17,6 +17,10 @@ export abstract class RoleRepository {
   abstract create(data: CreateRoleData): Promise<Role>;
   abstract assign(assignment: RoleAssignment): Promise<void>;
   abstract countMembers(roleId: string): Promise<number>;
+  abstract countEnabledMembers(
+    realmName: string,
+    roleName: string,
+  ): Promise<number>;
   abstract isUserInRole(
     realmName: string,
     userId: string,
