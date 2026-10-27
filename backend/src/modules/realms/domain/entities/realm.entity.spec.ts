@@ -1,4 +1,3 @@
-import { UsernameRequiredError } from '../errors/username-required.error.js';
 import { LoginIdentifier } from '../login-identifier.js';
 import { PasswordPolicy } from '../password-policy.js';
 import { Realm, RealmProps } from './realm.entity.js';
@@ -23,38 +22,14 @@ describe('Realm', () => {
     expect(realm({ name: 'shop' }).isMaster).toBe(false);
   });
 
-  describe('resolveUsername', () => {
-    it.each([LoginIdentifier.USERNAME, LoginIdentifier.USERNAME_OR_EMAIL])(
-      'keeps the given username when logging in by %s',
-      (loginIdentifier) => {
-        expect(
-          realm({ loginIdentifier }).resolveUsername({
-            username: 'joao',
-            email: 'joao@mail.com',
-          }),
-        ).toBe('joao');
-      },
-    );
-
-    it.each([LoginIdentifier.USERNAME, LoginIdentifier.USERNAME_OR_EMAIL])(
-      'requires a username when logging in by %s',
-      (loginIdentifier) => {
-        expect(() =>
-          realm({ loginIdentifier }).resolveUsername({
-            email: 'joao@mail.com',
-          }),
-        ).toThrow(UsernameRequiredError);
-      },
-    );
-
-    it('uses the email as username when logging in by EMAIL', () => {
-      expect(
-        realm({ loginIdentifier: LoginIdentifier.EMAIL }).resolveUsername({
-          username: 'ignored',
-          email: 'joao@mail.com',
-        }),
-      ).toBe('joao@mail.com');
-    });
+  it('knows whether it uses the email as username', () => {
+    expect(
+      realm({ loginIdentifier: LoginIdentifier.EMAIL }).usesEmailAsUsername,
+    ).toBe(true);
+    expect(
+      realm({ loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL })
+        .usesEmailAsUsername,
+    ).toBe(false);
   });
 
   it('exposes its password policy', () => {

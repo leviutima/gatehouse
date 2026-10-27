@@ -1,4 +1,3 @@
-import { UsernameRequiredError } from '../errors/username-required.error.js';
 import { LoginIdentifier } from '../login-identifier.js';
 import { PasswordPolicy } from '../password-policy.js';
 
@@ -42,16 +41,6 @@ export class Realm {
 
   get usesEmailAsUsername(): boolean {
     return this.loginIdentifier === LoginIdentifier.EMAIL;
-  }
-
-  resolveUsername(input: { username?: string; email: string }): string {
-    if (this.usesEmailAsUsername) {
-      return input.email;
-    }
-    if (!input.username) {
-      throw new UsernameRequiredError();
-    }
-    return input.username;
   }
 
   get passwordPolicy(): PasswordPolicy {
