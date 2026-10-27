@@ -17,6 +17,9 @@ export const envSchema = z
       .refine((value) => !value.endsWith('/'), 'must not end with "/"')
       .default('http://localhost:9000'),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    GATEHOUSE_KEY_ENCRYPTION_KEY: z
+      .string()
+      .regex(/^[A-Za-z0-9+/]{43}=$/, 'must be 32 bytes encoded as base64'),
     GATEHOUSE_ADMIN_USERNAME: z
       .string()
       .trim()

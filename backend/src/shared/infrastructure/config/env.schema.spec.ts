@@ -1,35 +1,38 @@
 import { validateEnv } from './env.schema.js';
 
 const DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
+const GATEHOUSE_KEY_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+const required = { DATABASE_URL, GATEHOUSE_KEY_ENCRYPTION_KEY };
 
 describe('validateEnv', () => {
   it('applies defaults when optional variables are absent', () => {
-    expect(validateEnv({ DATABASE_URL })).toEqual({
+    expect(validateEnv({ ...required })).toEqual({
       NODE_ENV: 'development',
       PORT: 9000,
       GATEHOUSE_ISSUER: 'http://localhost:9000',
       DATABASE_URL,
+      GATEHOUSE_KEY_ENCRYPTION_KEY,
     });
   });
 
   it('coerces PORT from string', () => {
-    expect(validateEnv({ DATABASE_URL, PORT: '8080' }).PORT).toBe(8080);
+    expect(validateEnv({ ...required, PORT: '8080' }).PORT).toBe(8080);
   });
 
   it('rejects an invalid PORT', () => {
-    expect(() => validateEnv({ DATABASE_URL, PORT: 'abc' })).toThrow(/PORT/);
+    expect(() => validateEnv({ ...required, PORT: 'abc' })).toThrow(/PORT/);
   });
 
   it('rejects an issuer that is not an http(s) URL', () => {
     expect(() =>
-      validateEnv({ DATABASE_URL, GATEHOUSE_ISSUER: 'ftp://auth.example.com' }),
+      validateEnv({ ...required, GATEHOUSE_ISSUER: 'ftp://auth.example.com' }),
     ).toThrow(/GATEHOUSE_ISSUER/);
   });
 
   it('rejects an issuer with a trailing slash', () => {
     expect(() =>
       validateEnv({
-        DATABASE_URL,
+        ...required,
         GATEHOUSE_ISSUER: 'https://auth.example.com/',
       }),
     ).toThrow(/must not end with/);
@@ -41,8 +44,28 @@ describe('validateEnv', () => {
 
   it('rejects a DATABASE_URL that is not postgres', () => {
     expect(() =>
-      validateEnv({ DATABASE_URL: 'mysql://user:pass@localhost/db' }),
+      validateEnv({
+        ...required,
+        DATABASE_URL: 'mysql://user:pass@localhost/db',
+      }),
     ).toThrow(/DATABASE_URL/);
+  });
+
+  it('requires GATEHOUSE_KEY_ENCRYPTION_KEY', () => {
+    expect(() => validateEnv({ DATABASE_URL })).toThrow(
+      /GATEHOUSE_KEY_ENCRYPTION_KEY/,
+    );
+  });
+
+  it.each([
+    ['16 bytes', Buffer.alloc(16, 7).toString('base64')],
+    ['33 bytes', Buffer.alloc(33, 7).toString('base64')],
+    ['32 bytes as base64url', Buffer.alloc(32, 251).toString('base64url')],
+    ['a plain passphrase', 'my-super-secret-passphrase'],
+  ])('rejects an encryption key with %s', (_case, key) => {
+    expect(() =>
+      validateEnv({ DATABASE_URL, GATEHOUSE_KEY_ENCRYPTION_KEY: key }),
+    ).toThrow(/must be 32 bytes encoded as base64/);
   });
 
   describe('initial admin', () => {
@@ -53,19 +76,19 @@ describe('validateEnv', () => {
     };
 
     it('is optional as a whole', () => {
-      expect(validateEnv({ DATABASE_URL })).not.toHaveProperty(
+      expect(validateEnv({ ...required })).not.toHaveProperty(
         'GATEHOUSE_ADMIN_PASSWORD',
       );
     });
 
     it('accepts the three variables together', () => {
-      expect(validateEnv({ DATABASE_URL, ...admin })).toMatchObject(admin);
+      expect(validateEnv({ ...required, ...admin })).toMatchObject(admin);
     });
 
     it('requires all three once any of them is set', () => {
       expect(() =>
         validateEnv({
-          DATABASE_URL,
+          ...required,
           GATEHOUSE_ADMIN_USERNAME: 'admin',
         }),
       ).toThrow(/GATEHOUSE_ADMIN_EMAIL[\s\S]*GATEHOUSE_ADMIN_PASSWORD/);
@@ -74,7 +97,7 @@ describe('validateEnv', () => {
     it('rejects a password shorter than 12 characters', () => {
       expect(() =>
         validateEnv({
-          DATABASE_URL,
+          ...required,
           ...admin,
           GATEHOUSE_ADMIN_PASSWORD: 'short-pass1',
         }),
@@ -84,7 +107,7 @@ describe('validateEnv', () => {
     it('rejects an invalid email', () => {
       expect(() =>
         validateEnv({
-          DATABASE_URL,
+          ...required,
           ...admin,
           GATEHOUSE_ADMIN_EMAIL: 'not-an-email',
         }),
@@ -94,7 +117,7 @@ describe('validateEnv', () => {
     it('rejects a username with unsupported characters', () => {
       expect(() =>
         validateEnv({
-          DATABASE_URL,
+          ...required,
           ...admin,
           GATEHOUSE_ADMIN_USERNAME: 'admin user',
         }),
@@ -103,7 +126,7 @@ describe('validateEnv', () => {
 
     it('trims the username but never the password', () => {
       const env = validateEnv({
-        DATABASE_URL,
+        ...required,
         ...admin,
         GATEHOUSE_ADMIN_USERNAME: '  admin  ',
         GATEHOUSE_ADMIN_PASSWORD: '  spaced password  ',
