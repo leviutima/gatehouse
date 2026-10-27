@@ -39,6 +39,8 @@ model Realm {
   loginIdentifier     LoginIdentifier @default(USERNAME_OR_EMAIL) @map("login_identifier")
   passwordMinLength   Int             @default(12) @map("password_min_length")
   accessTokenLifespan Int             @default(300) @map("access_token_lifespan")
+  sessionIdleTimeout  Int             @default(1800) @map("session_idle_timeout")
+  sessionMaxLifespan  Int             @default(36000) @map("session_max_lifespan")
   createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -46,6 +48,7 @@ model Realm {
   clients     Client[]
   signingKeys SigningKey[]
   roles       Role[]
+  sessions    Session[]
 
   @@map("realms")
 }
@@ -61,8 +64,10 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  realm Realm      @relation(fields: [realmId], references: [id], onDelete: Cascade)
-  roles UserRole[]
+  realm              Realm               @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  roles              UserRole[]
+  sessions           Session[]
+  authorizationCodes AuthorizationCode[]
 
   @@unique([realmId, username])
   @@unique([realmId, email])
@@ -85,7 +90,10 @@ model Client {
 
   realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
 
+  authorizationCodes AuthorizationCode[]
+
   @@unique([realmId, clientId])
+  @@unique([realmId, id])
   @@map("clients")
 }
 
@@ -133,4 +141,44 @@ model UserRole {
   @@id([userId, roleId])
   @@index([realmId, roleId])
   @@map("user_roles")
+}
+
+model Session {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  realmId    String   @map("realm_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  authTime   DateTime @map("auth_time") @db.Timestamptz
+  lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  realm              Realm               @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [realmId, userId], references: [realmId, id], onDelete: Cascade)
+  authorizationCodes AuthorizationCode[]
+
+  @@index([realmId, userId])
+  @@map("sessions")
+}
+
+model AuthorizationCode {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  realmId       String    @map("realm_id") @db.Uuid
+  codeHash      String    @unique @map("code_hash")
+  clientId      String    @map("client_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  sessionId     String    @map("session_id") @db.Uuid
+  redirectUri   String    @map("redirect_uri")
+  scope         String
+  codeChallenge String    @map("code_challenge")
+  nonce         String?
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  client  Client  @relation(fields: [realmId, clientId], references: [realmId, id], onDelete: Cascade)
+  user    User    @relation(fields: [realmId, userId], references: [realmId, id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("authorization_codes")
 }
