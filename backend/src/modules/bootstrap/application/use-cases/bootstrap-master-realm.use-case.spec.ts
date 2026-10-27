@@ -49,6 +49,10 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve([...this.realms]);
   }
 
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(data: CreateRealmData): Promise<Realm> {
     if (this.failCreateWith) {
       return Promise.reject(this.failCreateWith);

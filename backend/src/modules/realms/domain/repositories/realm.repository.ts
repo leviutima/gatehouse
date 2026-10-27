@@ -9,8 +9,16 @@ export interface CreateRealmData {
   accessTokenLifespan?: number;
 }
 
+export interface UpdateRealmData {
+  displayName?: string;
+  enabled?: boolean;
+  passwordMinLength?: number;
+  accessTokenLifespan?: number;
+}
+
 export abstract class RealmRepository {
   abstract findByName(name: string): Promise<Realm | null>;
   abstract list(): Promise<Realm[]>;
   abstract create(data: CreateRealmData): Promise<Realm>;
+  abstract update(id: string, data: UpdateRealmData): Promise<Realm>;
 }
