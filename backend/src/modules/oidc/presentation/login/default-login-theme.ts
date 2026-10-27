@@ -10,8 +10,8 @@ const IDENTIFIER_LABELS: Record<LoginIdentifier, string> = {
 };
 
 const STYLES = `
-  :root { color-scheme: light dark; --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #5f6368; --border: #d5d8dc; --accent: #2457d6; --error: #b3261e; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #111317; --card: #1b1e23; --text: #e8eaed; --muted: #a0a4a8; --border: #33373d; --accent: #7aa2ff; --error: #f2b8b5; } }
+  :root { color-scheme: light dark; --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #5f6368; --border: #d5d8dc; --accent: #2457d6; --on-accent: #fff; --error: #b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111317; --card: #1b1e23; --text: #e8eaed; --muted: #a0a4a8; --border: #33373d; --accent: #7aa2ff; --on-accent: #0b1220; --error: #f2b8b5; } }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px 28px; }
@@ -20,7 +20,7 @@ const STYLES = `
   label { display: block; margin: 16px 0 6px; font-weight: 600; font-size: .9rem; }
   input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; }
   input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  button { width: 100%; margin-top: 24px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button { width: 100%; margin-top: 24px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font: inherit; font-weight: 600; cursor: pointer; }
   .error { margin: 0 0 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--error); color: var(--error); font-size: .9rem; }
 `;
 
