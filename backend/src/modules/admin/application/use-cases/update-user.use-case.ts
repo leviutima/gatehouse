@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
-import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
 import { AdminAuthorizer } from '../../../roles/application/services/admin-authorizer.js';
 import { LastRealmAdminError } from '../../../roles/domain/errors/last-realm-admin.error.js';
 import type { User } from '../../../users/domain/entities/user.entity.js';
-import { UserNotFoundError } from '../../../users/domain/errors/user-not-found.error.js';
 import { UserRepository } from '../../../users/domain/repositories/user.repository.js';
+import { RealmResourceFinder } from '../services/realm-resource-finder.js';
 
 export interface UpdateUserChanges {
   enabled?: boolean;
@@ -21,7 +19,7 @@ export interface UpdateUserInput {
 @Injectable()
 export class UpdateUserUseCase {
   constructor(
-    private readonly realms: RealmRepository,
+    private readonly finder: RealmResourceFinder,
     private readonly users: UserRepository,
     private readonly authorizer: AdminAuthorizer,
   ) {}
@@ -31,14 +29,8 @@ export class UpdateUserUseCase {
     userId,
     changes,
   }: UpdateUserInput): Promise<User> {
-    const realm = await this.realms.findByName(realmName);
-    if (!realm) {
-      throw new RealmNotFoundError(realmName);
-    }
-    const user = await this.users.findById(realm.id, userId);
-    if (!user) {
-      throw new UserNotFoundError(userId);
-    }
+    const realm = await this.finder.realm(realmName);
+    const user = await this.finder.user(realm, userId);
 
     if (
       changes.enabled === false &&

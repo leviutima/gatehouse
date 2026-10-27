@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import type { Principal } from '../../../../shared/application/auth/principal.js';
 import type { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { MasterRealmCannotBeDisabledError } from '../../../realms/domain/errors/master-realm-cannot-be-disabled.error.js';
-import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
 import { assertValidRealmSettings } from '../../../realms/domain/realm-settings.js';
 import {
   RealmRepository,
@@ -10,6 +9,7 @@ import {
 } from '../../../realms/domain/repositories/realm.repository.js';
 import { AdminAuthorizer } from '../../../roles/application/services/admin-authorizer.js';
 import { RealmStatusRequiresGlobalAdminError } from '../errors/realm-status-requires-global-admin.error.js';
+import { RealmResourceFinder } from '../services/realm-resource-finder.js';
 
 export interface UpdateRealmInput {
   actor: Principal;
@@ -20,6 +20,7 @@ export interface UpdateRealmInput {
 @Injectable()
 export class UpdateRealmUseCase {
   constructor(
+    private readonly finder: RealmResourceFinder,
     private readonly realms: RealmRepository,
     private readonly authorizer: AdminAuthorizer,
   ) {}
@@ -29,10 +30,7 @@ export class UpdateRealmUseCase {
     realmName,
     changes,
   }: UpdateRealmInput): Promise<Realm> {
-    const realm = await this.realms.findByName(realmName);
-    if (!realm) {
-      throw new RealmNotFoundError(realmName);
-    }
+    const realm = await this.finder.realm(realmName);
 
     if (changes.enabled !== undefined && changes.enabled !== realm.enabled) {
       if (!(await this.authorizer.isGlobalAdmin(actor))) {
