@@ -1,13 +1,10 @@
 import { z } from 'zod';
 
 export const tokenRequestSchema = z.object({
-  grant_type: z
-    .string()
-    .min(1)
-    .meta({
-      description: 'Only client_credentials for now',
-      example: 'client_credentials',
-    }),
+  grant_type: z.string().min(1).meta({
+    description: 'Only client_credentials for now',
+    example: 'client_credentials',
+  }),
   client_id: z
     .string()
     .min(1)
