@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RealmsModule } from '../realms/realms.module.js';
+import { PasswordAuthenticator } from './application/services/password-authenticator.js';
 import { UserRegistrar } from './application/services/user-registrar.js';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case.js';
 import { GetUserUseCase } from './application/use-cases/get-user.use-case.js';
@@ -13,6 +14,7 @@ import { PrismaUserRepository } from './infrastructure/repositories/prisma-user.
   providers: [
     { provide: UserRepository, useClass: PrismaUserRepository },
     UserRegistrar,
+    PasswordAuthenticator,
     CreateUserUseCase,
     ListUsersUseCase,
     GetUserUseCase,
@@ -21,6 +23,7 @@ import { PrismaUserRepository } from './infrastructure/repositories/prisma-user.
   exports: [
     UserRepository,
     UserRegistrar,
+    PasswordAuthenticator,
     CreateUserUseCase,
     ListUsersUseCase,
     GetUserUseCase,

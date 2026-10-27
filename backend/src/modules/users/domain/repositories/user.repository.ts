@@ -21,6 +21,7 @@ export interface Page {
 
 export abstract class UserRepository {
   abstract findById(realmId: string, id: string): Promise<User | null>;
+  abstract findByEmail(realmId: string, email: string): Promise<User | null>;
   abstract findByUsername(
     realmId: string,
     username: string,
