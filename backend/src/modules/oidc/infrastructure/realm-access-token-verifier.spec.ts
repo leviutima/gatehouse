@@ -1,87 +1,20 @@
 import { ConfigService } from '@nestjs/config';
-import { Clock } from '../../../shared/application/time/clock.js';
 import type { Env } from '../../../shared/infrastructure/config/env.schema.js';
-import { Realm } from '../../realms/domain/entities/realm.entity.js';
-import { LoginIdentifier } from '../../realms/domain/login-identifier.js';
-import {
-  CreateRealmData,
-  RealmRepository,
-} from '../../realms/domain/repositories/realm.repository.js';
+import { FixedClock, TEST_NOW } from '../../../shared/testing/test-clock.js';
+import { InMemoryRealmRepository } from '../../realms/testing/in-memory-realm.repository.js';
+import { aRealm } from '../../realms/testing/realm.fixture.js';
 import type { JwtClaims } from '../../signing-keys/application/jwt-signer.js';
 import { SigningKey } from '../../signing-keys/domain/entities/signing-key.entity.js';
-import {
-  CreateSigningKeyData,
-  SigningKeyRepository,
-} from '../../signing-keys/domain/repositories/signing-key.repository.js';
 import { SigningKeyStatus } from '../../signing-keys/domain/signing-key-status.js';
 import { JoseEs256KeyPairGenerator } from '../../signing-keys/infrastructure/crypto/jose-es256-key-pair-generator.js';
 import { JoseJwtSigner } from '../../signing-keys/infrastructure/crypto/jose-jwt-signer.js';
 import { JoseJwtVerifier } from '../../signing-keys/infrastructure/crypto/jose-jwt-verifier.js';
+import { InMemorySigningKeyRepository } from '../../signing-keys/testing/in-memory-signing-key.repository.js';
 import { ConfigRealmIssuer } from './config-realm-issuer.js';
 import { RealmAccessTokenVerifier } from './realm-access-token-verifier.js';
 
-const now = new Date('2026-10-27T12:00:00Z');
+const now = TEST_NOW;
 const nowSeconds = now.getTime() / 1000;
-
-class InMemoryRealmRepository extends RealmRepository {
-  readonly realms: Realm[] = [];
-
-  findByName(name: string): Promise<Realm | null> {
-    return Promise.resolve(
-      this.realms.find((realm) => realm.name === name) ?? null,
-    );
-  }
-
-  list(): Promise<Realm[]> {
-    return Promise.resolve([...this.realms]);
-  }
-
-  update(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(_data: CreateRealmData): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-}
-
-class InMemorySigningKeyRepository extends SigningKeyRepository {
-  readonly keys: SigningKey[] = [];
-
-  findActive(realmId: string): Promise<SigningKey | null> {
-    return Promise.resolve(
-      this.keys.find((key) => key.realmId === realmId && key.isActive) ?? null,
-    );
-  }
-
-  findPublished(realmId: string): Promise<SigningKey[]> {
-    return Promise.resolve(this.keys.filter((key) => key.realmId === realmId));
-  }
-
-  create(_data: CreateSigningKeyData): Promise<SigningKey> {
-    return Promise.reject(new Error('not used'));
-  }
-}
-
-class FixedClock extends Clock {
-  now(): Date {
-    return now;
-  }
-}
-
-function realm(name: string, enabled = true): Realm {
-  return new Realm({
-    id: `${name}-id`,
-    name,
-    displayName: name,
-    enabled,
-    loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
-    passwordMinLength: 12,
-    accessTokenLifespan: 300,
-    createdAt: now,
-    updatedAt: now,
-  });
-}
 
 describe('RealmAccessTokenVerifier', () => {
   const generator = new JoseEs256KeyPairGenerator();
@@ -156,7 +89,7 @@ describe('RealmAccessTokenVerifier', () => {
       new JoseJwtVerifier(),
       new FixedClock(),
     );
-    realms.realms.push(realm('shop'), realm('other'));
+    realms.realms.push(aRealm({ name: 'shop' }), aRealm({ name: 'other' }));
     await addKey('key-1');
   });
 
@@ -194,7 +127,7 @@ describe('RealmAccessTokenVerifier', () => {
   });
 
   it('rejects a token of a disabled realm', async () => {
-    realms.realms[0] = realm('shop', false);
+    realms.realms[0] = aRealm({ name: 'shop', enabled: false });
 
     await expect(verifier.verify(await sign())).resolves.toBeNull();
   });
