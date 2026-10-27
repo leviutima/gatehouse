@@ -1,5 +1,7 @@
+import type { Mock } from 'vitest';
 import { PasswordHasher } from '../../../../shared/application/crypto/password-hasher.js';
 import { TransactionManager } from '../../../../shared/application/persistence/transaction-manager.js';
+import type { EnsureActiveSigningKeyUseCase } from '../../../signing-keys/application/use-cases/ensure-active-signing-key.use-case.js';
 import { User } from '../../../users/domain/entities/user.entity.js';
 import {
   CreateUserData,
@@ -73,10 +75,16 @@ class FakePasswordHasher extends PasswordHasher {
 
 class FakeTransactionManager extends TransactionManager {
   readonly runs = vi.fn();
+  active = false;
 
-  run<T>(work: () => Promise<T>): Promise<T> {
+  async run<T>(work: () => Promise<T>): Promise<T> {
     this.runs();
-    return work();
+    this.active = true;
+    try {
+      return await work();
+    } finally {
+      this.active = false;
+    }
   }
 }
 
@@ -91,6 +99,8 @@ describe('BootstrapMasterRealmUseCase', () => {
   let users: InMemoryUserRepository;
   let hasher: FakePasswordHasher;
   let transactions: FakeTransactionManager;
+  let ensureActiveSigningKey: { execute: Mock<(realmId: string) => unknown> };
+  let keyRequestsInsideTransaction: boolean[];
   let useCase: BootstrapMasterRealmUseCase;
 
   beforeEach(() => {
@@ -98,19 +108,31 @@ describe('BootstrapMasterRealmUseCase', () => {
     users = new InMemoryUserRepository();
     hasher = new FakePasswordHasher();
     transactions = new FakeTransactionManager();
+    keyRequestsInsideTransaction = [];
+    ensureActiveSigningKey = {
+      execute: vi.fn(() => {
+        keyRequestsInsideTransaction.push(transactions.active);
+        return Promise.resolve();
+      }),
+    };
     useCase = new BootstrapMasterRealmUseCase(
       realms,
       users,
       hasher,
       transactions,
+      ensureActiveSigningKey as unknown as EnsureActiveSigningKeyUseCase,
     );
   });
 
-  it('creates the master realm and its admin inside one transaction', async () => {
+  it('creates the master realm, its admin and signing key inside one transaction', async () => {
     const result = await useCase.execute(initialAdmin);
 
     expect(result.status).toBe('created');
     expect(transactions.runs).toHaveBeenCalledOnce();
+    expect(ensureActiveSigningKey.execute).toHaveBeenCalledExactlyOnceWith(
+      realms.realms[0].id,
+    );
+    expect(keyRequestsInsideTransaction).toEqual([true]);
     expect(realms.realms).toHaveLength(1);
     expect(realms.realms[0]).toMatchObject({
       name: 'master',
@@ -146,6 +168,21 @@ describe('BootstrapMasterRealmUseCase', () => {
     expect(users.users).toHaveLength(0);
   });
 
+  it('ensures an existing master realm has an active signing key', async () => {
+    const master = await realms.create({
+      name: 'master',
+      displayName: 'Master',
+      loginIdentifier: 'USERNAME_OR_EMAIL',
+    });
+
+    await useCase.execute(initialAdmin);
+
+    expect(ensureActiveSigningKey.execute).toHaveBeenCalledExactlyOnceWith(
+      master.id,
+    );
+    expect(transactions.runs).not.toHaveBeenCalled();
+  });
+
   it('ignores a missing admin once the master realm exists', async () => {
     await realms.create({
       name: 'master',
@@ -172,6 +209,22 @@ describe('BootstrapMasterRealmUseCase', () => {
       status: 'already_exists',
     });
     expect(users.users).toHaveLength(0);
+  });
+
+  it('ensures the signing key of the master realm created by the race winner', async () => {
+    const winner = await realms.create({
+      name: 'master',
+      displayName: 'Master',
+      loginIdentifier: 'USERNAME_OR_EMAIL',
+    });
+    vi.spyOn(realms, 'findByName').mockResolvedValueOnce(null);
+    realms.failCreateWith = new RealmAlreadyExistsError('master');
+
+    await useCase.execute(initialAdmin);
+
+    expect(ensureActiveSigningKey.execute).toHaveBeenCalledExactlyOnceWith(
+      winner.id,
+    );
   });
 
   it('propagates unexpected failures', async () => {
