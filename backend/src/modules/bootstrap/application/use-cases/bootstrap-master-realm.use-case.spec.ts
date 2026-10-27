@@ -84,6 +84,18 @@ class InMemoryUserRepository extends UserRepository {
     );
   }
 
+  findById(): Promise<User | null> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  list(): Promise<User[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  update(): Promise<User> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(data: CreateUserData): Promise<User> {
     const user = new User({
       id: `user-${this.users.length + 1}`,
