@@ -129,6 +129,10 @@ class InMemoryRoleRepository extends RoleRepository {
         .length,
     );
   }
+
+  isUserInRole(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
 }
 
 class FakeTransactionManager extends TransactionManager {

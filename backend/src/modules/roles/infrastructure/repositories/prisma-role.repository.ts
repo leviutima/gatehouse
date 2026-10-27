@@ -45,4 +45,19 @@ export class PrismaRoleRepository extends RoleRepository {
   countMembers(roleId: string): Promise<number> {
     return this.prisma.db.userRole.count({ where: { roleId } });
   }
+
+  async isUserInRole(
+    realmName: string,
+    userId: string,
+    roleName: string,
+  ): Promise<boolean> {
+    const assignments = await this.prisma.db.userRole.count({
+      where: {
+        userId,
+        user: { enabled: true },
+        role: { name: roleName, realm: { name: realmName } },
+      },
+    });
+    return assignments > 0;
+  }
 }
