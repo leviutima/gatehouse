@@ -20,6 +20,13 @@ export class PrismaRealmRepository extends RealmRepository {
     return row ? RealmMapper.toDomain(row) : null;
   }
 
+  async list(): Promise<Realm[]> {
+    const rows = await this.prisma.db.realm.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return rows.map((row) => RealmMapper.toDomain(row));
+  }
+
   async create(data: CreateRealmData): Promise<Realm> {
     try {
       const row = await this.prisma.db.realm.create({ data });
