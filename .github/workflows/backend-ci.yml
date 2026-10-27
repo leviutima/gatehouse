@@ -42,6 +42,7 @@ jobs:
       GATEHOUSE_ADMIN_USERNAME: admin
       GATEHOUSE_ADMIN_EMAIL: admin@gatehouse.local
       GATEHOUSE_ADMIN_PASSWORD: ci-only-admin-password
+      GATEHOUSE_KEY_ENCRYPTION_KEY: WPRPGuCm3fohVZ02kSWVh34MPyBMwh25SCs7xjpRRxM=
 
     defaults:
       run:
