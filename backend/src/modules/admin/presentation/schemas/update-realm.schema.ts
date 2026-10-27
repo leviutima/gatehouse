@@ -5,6 +5,8 @@ export const updateRealmSchema = z
     displayName: z.string(),
     enabled: z.boolean(),
     passwordMinLength: z.number().int(),
+    sessionIdleTimeout: z.number().int().meta({ description: 'Seconds' }),
+    sessionMaxLifespan: z.number().int().meta({ description: 'Seconds' }),
     accessTokenLifespan: z.number().int().meta({ description: 'Seconds' }),
   })
   .partial()

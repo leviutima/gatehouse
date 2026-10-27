@@ -11,6 +11,8 @@ export interface RealmProps {
   loginIdentifier: LoginIdentifier;
   passwordMinLength: number;
   accessTokenLifespan: number;
+  sessionIdleTimeout: number;
+  sessionMaxLifespan: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +25,8 @@ export class Realm {
   readonly loginIdentifier: LoginIdentifier;
   readonly passwordMinLength: number;
   readonly accessTokenLifespan: number;
+  readonly sessionIdleTimeout: number;
+  readonly sessionMaxLifespan: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -34,6 +38,8 @@ export class Realm {
     this.loginIdentifier = props.loginIdentifier;
     this.passwordMinLength = props.passwordMinLength;
     this.accessTokenLifespan = props.accessTokenLifespan;
+    this.sessionIdleTimeout = props.sessionIdleTimeout;
+    this.sessionMaxLifespan = props.sessionMaxLifespan;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }

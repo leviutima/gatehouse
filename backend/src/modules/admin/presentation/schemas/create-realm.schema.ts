@@ -11,6 +11,16 @@ export const createRealmSchema = z.object({
     .int()
     .optional()
     .meta({ description: 'Seconds' }),
+  sessionIdleTimeout: z
+    .number()
+    .int()
+    .optional()
+    .meta({ description: 'Seconds' }),
+  sessionMaxLifespan: z
+    .number()
+    .int()
+    .optional()
+    .meta({ description: 'Seconds' }),
   admin: z
     .object({
       username: z.string().optional(),
