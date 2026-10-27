@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
+import { SigningKeysModule } from './modules/signing-keys/signing-keys.module.js';
 import { TokenVerifier } from './shared/application/auth/token-verifier.js';
 import { DenyAllTokenVerifier } from './shared/infrastructure/auth/deny-all-token-verifier.js';
 import { CryptoModule } from './shared/infrastructure/crypto/crypto.module.js';
@@ -22,6 +23,7 @@ import { AccessTokenGuard } from './shared/presentation/guards/access-token.guar
     CryptoModule,
     BootstrapModule,
     ClientsModule,
+    SigningKeysModule,
   ],
   controllers: [],
   providers: [
