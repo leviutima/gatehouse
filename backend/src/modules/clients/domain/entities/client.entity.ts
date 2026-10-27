@@ -17,6 +17,11 @@ export interface ClientProps {
   updatedAt: Date;
 }
 
+export type ClientConfiguration = Pick<
+  ClientProps,
+  'type' | 'secretHash' | 'redirectUris' | 'grantTypes'
+>;
+
 export class Client {
   readonly id: string;
   readonly realmId: string;
@@ -31,7 +36,7 @@ export class Client {
   readonly updatedAt: Date;
 
   constructor(props: ClientProps) {
-    Client.assertConsistent(props);
+    Client.assertValid(props);
     this.id = props.id;
     this.realmId = props.realmId;
     this.clientId = props.clientId;
@@ -57,7 +62,7 @@ export class Client {
     return this.redirectUris.includes(uri);
   }
 
-  private static assertConsistent(props: ClientProps): void {
+  static assertValid(props: ClientConfiguration): void {
     const grants = new Set(props.grantTypes);
 
     if (grants.size === 0) {
