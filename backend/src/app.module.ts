@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { AdminModule } from './modules/admin/admin.module.js';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
 import { OidcModule } from './modules/oidc/oidc.module.js';
@@ -23,6 +24,7 @@ import { AccessTokenGuard } from './shared/presentation/guards/access-token.guar
     PrismaModule,
     CryptoModule,
     TimeModule,
+    AdminModule,
     BootstrapModule,
     ClientsModule,
     SigningKeysModule,
