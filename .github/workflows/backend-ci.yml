@@ -23,13 +23,13 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: gatehouse
+          POSTGRES_DB: gatehouse_test
           POSTGRES_USER: gatehouse
           POSTGRES_PASSWORD: gatehouse
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U gatehouse -d gatehouse"
+          --health-cmd "pg_isready -U gatehouse -d gatehouse_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -38,7 +38,7 @@ jobs:
       NODE_ENV: test
       PORT: 9000
       GATEHOUSE_ISSUER: http://localhost:9000
-      DATABASE_URL: postgresql://gatehouse:gatehouse@localhost:5432/gatehouse?schema=public
+      DATABASE_URL: postgresql://gatehouse:gatehouse@localhost:5432/gatehouse_test?schema=public
       GATEHOUSE_ADMIN_USERNAME: admin
       GATEHOUSE_ADMIN_EMAIL: admin@gatehouse.local
       GATEHOUSE_ADMIN_PASSWORD: ci-only-admin-password
@@ -66,7 +66,5 @@ jobs:
       - run: npm run build
 
       - run: npm test
-
-      - run: npm run db:deploy
 
       - run: npm run test:e2e
