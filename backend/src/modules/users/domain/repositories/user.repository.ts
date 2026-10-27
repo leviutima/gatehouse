@@ -9,5 +9,9 @@ export interface CreateUserData {
 }
 
 export abstract class UserRepository {
+  abstract findByUsername(
+    realmId: string,
+    username: string,
+  ): Promise<User | null>;
   abstract create(data: CreateUserData): Promise<User>;
 }

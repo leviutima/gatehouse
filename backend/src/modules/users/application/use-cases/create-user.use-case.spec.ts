@@ -50,6 +50,16 @@ class InMemoryRealmRepository extends RealmRepository {
 class InMemoryUserRepository extends UserRepository {
   readonly users: User[] = [];
 
+  findByUsername(realmId: string, username: string): Promise<User | null> {
+    return Promise.resolve(
+      this.users.find(
+        (user) =>
+          user.realmId === realmId &&
+          user.username.toLowerCase() === username.toLowerCase(),
+      ) ?? null,
+    );
+  }
+
   create(data: CreateUserData): Promise<User> {
     const user = new User({
       id: `user-${this.users.length + 1}`,

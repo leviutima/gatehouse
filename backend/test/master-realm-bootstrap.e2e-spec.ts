@@ -23,6 +23,12 @@ describe('Master realm bootstrap (e2e)', () => {
 
   const masterRealms = () => prisma.realm.count({ where: { name: 'master' } });
 
+  const masterAdmins = () =>
+    prisma.userRole.findMany({
+      where: { role: { name: 'admin', realm: { name: 'master' } } },
+      include: { user: true },
+    });
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -64,6 +70,25 @@ describe('Master realm bootstrap (e2e)', () => {
         where: { realm: { name: 'master' }, status: 'ACTIVE' },
       }),
     ).resolves.toBe(1);
+  });
+
+  it('makes the initial admin an admin of the master realm on boot', async () => {
+    const admins = await masterAdmins();
+
+    expect(admins.map(({ user }) => user.username)).toEqual([
+      initialAdmin().username,
+    ]);
+  });
+
+  it('gives the admin role back to the configured admin when master has none', async () => {
+    await prisma.userRole.deleteMany({
+      where: { role: { realm: { name: 'master' } } },
+    });
+
+    const result = await useCase.execute(initialAdmin());
+
+    expect(result.status).toBe('admin_recovered');
+    await expect(masterAdmins()).resolves.toHaveLength(1);
   });
 
   it('is idempotent across restarts', async () => {
@@ -110,5 +135,6 @@ describe('Master realm bootstrap (e2e)', () => {
     await expect(
       prisma.signingKey.count({ where: { realm: { name: 'master' } } }),
     ).resolves.toBe(1);
+    await expect(masterAdmins()).resolves.toHaveLength(1);
   });
 });

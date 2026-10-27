@@ -15,6 +15,16 @@ export class PrismaUserRepository extends UserRepository {
     super();
   }
 
+  async findByUsername(
+    realmId: string,
+    username: string,
+  ): Promise<User | null> {
+    const row = await this.prisma.db.user.findUnique({
+      where: { realmId_username: { realmId, username } },
+    });
+    return row ? UserMapper.toDomain(row) : null;
+  }
+
   async create(data: CreateUserData): Promise<User> {
     try {
       const row = await this.prisma.db.user.create({ data });
