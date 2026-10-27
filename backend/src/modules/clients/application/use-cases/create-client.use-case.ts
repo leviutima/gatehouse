@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { ClientSecretHasher } from '../../../../shared/application/crypto/client-secret-hasher.js';
+import { SecretHasher } from '../../../../shared/application/crypto/secret-hasher.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
 import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
 import { ClientType } from '../../domain/client-type.js';
@@ -32,7 +32,7 @@ export class CreateClientUseCase {
   constructor(
     private readonly realms: RealmRepository,
     private readonly clients: ClientRepository,
-    private readonly secretHasher: ClientSecretHasher,
+    private readonly secretHasher: SecretHasher,
   ) {}
 
   async execute(input: CreateClientInput): Promise<CreateClientResult> {

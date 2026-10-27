@@ -1,7 +1,7 @@
-import { Sha256ClientSecretHasher } from './sha256-client-secret-hasher.js';
+import { Sha256SecretHasher } from './sha256-secret-hasher.js';
 
-describe('Sha256ClientSecretHasher', () => {
-  const hasher = new Sha256ClientSecretHasher();
+describe('Sha256SecretHasher', () => {
+  const hasher = new Sha256SecretHasher();
 
   it('produces a prefixed base64url SHA-256 digest', () => {
     expect(hasher.hash('abc')).toBe(

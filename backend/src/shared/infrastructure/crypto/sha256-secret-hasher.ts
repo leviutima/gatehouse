@@ -1,11 +1,11 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { ClientSecretHasher } from '../../application/crypto/client-secret-hasher.js';
+import { SecretHasher } from '../../application/crypto/secret-hasher.js';
 
 const PREFIX = 'sha256$';
 
 @Injectable()
-export class Sha256ClientSecretHasher extends ClientSecretHasher {
+export class Sha256SecretHasher extends SecretHasher {
   hash(secret: string): string {
     return PREFIX + createHash('sha256').update(secret).digest('base64url');
   }

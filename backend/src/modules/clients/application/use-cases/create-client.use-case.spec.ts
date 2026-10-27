@@ -1,4 +1,4 @@
-import { ClientSecretHasher } from '../../../../shared/application/crypto/client-secret-hasher.js';
+import { SecretHasher } from '../../../../shared/application/crypto/secret-hasher.js';
 import { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
 import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
@@ -56,7 +56,7 @@ class InMemoryClientRepository extends ClientRepository {
   }
 }
 
-class FakeClientSecretHasher extends ClientSecretHasher {
+class FakeSecretHasher extends SecretHasher {
   hash(secret: string): string {
     return `hashed:${secret}`;
   }
@@ -75,7 +75,7 @@ describe('CreateClientUseCase', () => {
     useCase = new CreateClientUseCase(
       new InMemoryRealmRepository(),
       clients,
-      new FakeClientSecretHasher(),
+      new FakeSecretHasher(),
     );
   });
 

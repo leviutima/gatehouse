@@ -7,7 +7,7 @@ import { ClientAlreadyExistsError } from '../src/modules/clients/domain/errors/c
 import { InvalidClientConfigurationError } from '../src/modules/clients/domain/errors/invalid-client-configuration.error.js';
 import { GrantType } from '../src/modules/clients/domain/grant-type.js';
 import { ClientRepository } from '../src/modules/clients/domain/repositories/client.repository.js';
-import { ClientSecretHasher } from '../src/shared/application/crypto/client-secret-hasher.js';
+import { SecretHasher } from '../src/shared/application/crypto/secret-hasher.js';
 import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service.js';
 
 describe('CreateClientUseCase (e2e)', () => {
@@ -82,9 +82,7 @@ describe('CreateClientUseCase (e2e)', () => {
       where: { id: client.id },
     });
     expect(row.secretHash).not.toContain(secret!);
-    expect(app.get(ClientSecretHasher).verify(row.secretHash!, secret!)).toBe(
-      true,
-    );
+    expect(app.get(SecretHasher).verify(row.secretHash!, secret!)).toBe(true);
   });
 
   it('rejects the same client id in the same realm', async () => {
