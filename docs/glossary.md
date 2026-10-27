@@ -71,6 +71,12 @@ Siglas e termos que aparecem no código, nos tokens e nas respostas HTTP do Gate
 | **`ACTIVE`** | A chave que assina os tokens novos. Cada realm tem exatamente uma, garantido por um índice único parcial no banco. |
 | **`PASSIVE`** | Uma chave que não assina mais, mas continua publicada e aceita, para que tokens emitidos antes de uma rotação de chave continuem válidos até expirar. |
 | **Rotação de chave** | Trocar a chave ativa por uma nova, mantendo a antiga como passiva por um tempo. |
+| **Papel** (role) | Um rótulo de permissão de um realm, atribuído a usuários do mesmo realm (tabelas `roles` e `user_roles`). As aplicações vão poder criar os próprios papéis; para o Gatehouse, só `admin` tem significado. O banco recusa atribuir a um usuário um papel de outro realm. |
+| **Papel `admin`** | Papel reservado que todo realm tem. Quem o tem administra o realm. |
+| **Admin global** | Usuário do `master` com o papel `admin`. Administra todos os realms, inclusive criar e listar realms. |
+| **Admin de realm** | Usuário de um realm, por exemplo `shop`, com o papel `admin` desse realm. Administra só o `shop`. |
+| **RBAC** | Role-Based Access Control: controle de acesso baseado em papéis, que é o modelo descrito acima. |
+| **Admin API** | As rotas em `/admin/realms/...`. `@MasterAdmin()` exige admin global; `@RealmAdmin()` aceita admin global ou admin do realm da rota. O papel é consultado no banco a cada requisição, então removê-lo ou desabilitar o usuário corta o acesso na hora. |
 
 ---
 
@@ -209,6 +215,31 @@ Respondem no formato `{ "error": "...", "error_description": "..." }` da RFC 674
 | Código | HTTP | Quando acontece |
 |---|---|---|
 | **`invalid_token`** | 401 | O token está expirado, malformado, assinado por uma chave desconhecida, foi alterado ou pertence a um realm desabilitado. |
+
+### Da Admin API
+
+Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
+
+| Código | HTTP | Quando acontece |
+|---|---|---|
+| **`unauthorized`** | 401 | Falta o token, ou ele é inválido. |
+| **`forbidden`** | 403 | O token é válido, mas quem o apresenta não é admin do realm pedido. É decidido antes de consultar o realm, então não revela se o realm existe. |
+| **`validation_failed`** | 400 | O corpo da requisição não tem o formato esperado. |
+| **`invalid_realm_configuration`** | 422 | O formato está certo, mas o valor quebra uma regra: nome fora do padrão, duração do token fora do intervalo etc. |
+| **`weak_password`** | 422 | A senha não atende à política do realm. |
+| **`realm_already_exists`** | 409 | Já existe um realm com esse nome. |
+| **`realm_not_found`** | 404 | O realm não existe (só um admin global chega a ver essa resposta). |
+| **`realm_status_requires_global_admin`** | 403 | Um admin de realm tentou habilitar ou desabilitar o próprio realm; só o admin global pode. |
+| **`master_realm_cannot_be_disabled`** | 422 | Tentativa de desabilitar o `master`, que deixaria o Gatehouse sem administração. |
+| **`user_not_found`** | 404 | O usuário não existe **neste** realm (um id de outro realm também dá 404). |
+| **`user_already_exists`** | 409 | Já existe um usuário com esse username ou e-mail no realm. |
+| **`username_required`** | 422 | O realm não usa o e-mail como username, e nenhum username foi enviado. |
+| **`invalid_username`** | 422 | Username fora do padrão: 3 a 64 letras, números, `.` `_` `-`. |
+| **`role_not_found`** | 404 | O papel não existe neste realm. |
+| **`role_already_exists`** | 409 | Já existe um papel com esse nome no realm. |
+| **`invalid_role_name`** | 422 | Nome de papel fora do padrão: letras, números, `.` `_` `:` `-`, até 64 caracteres. |
+| **`reserved_role`** | 422 | Tentativa de apagar o papel `admin`, que todo realm precisa ter. |
+| **`last_realm_admin`** | 409 | Desabilitar o usuário ou tirar o papel `admin` dele deixaria o realm sem nenhum admin habilitado. |
 
 ---
 

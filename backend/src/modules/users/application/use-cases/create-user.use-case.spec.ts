@@ -42,6 +42,14 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve(this.realms.find((r) => r.name === name) ?? null);
   }
 
+  list(): Promise<Realm[]> {
+    return Promise.resolve([...this.realms]);
+  }
+
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(): Promise<Realm> {
     return Promise.reject(new Error('not used'));
   }
@@ -49,6 +57,28 @@ class InMemoryRealmRepository extends RealmRepository {
 
 class InMemoryUserRepository extends UserRepository {
   readonly users: User[] = [];
+
+  findByUsername(realmId: string, username: string): Promise<User | null> {
+    return Promise.resolve(
+      this.users.find(
+        (user) =>
+          user.realmId === realmId &&
+          user.username.toLowerCase() === username.toLowerCase(),
+      ) ?? null,
+    );
+  }
+
+  findById(): Promise<User | null> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  list(): Promise<User[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  update(): Promise<User> {
+    return Promise.reject(new Error('not used'));
+  }
 
   create(data: CreateUserData): Promise<User> {
     const user = new User({
