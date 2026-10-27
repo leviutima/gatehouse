@@ -57,6 +57,14 @@ describe('Master realm bootstrap (e2e)', () => {
     ).resolves.toBe(true);
   });
 
+  it('gives the master realm exactly one active signing key on boot', async () => {
+    await expect(
+      prisma.signingKey.count({
+        where: { realm: { name: 'master' }, status: 'ACTIVE' },
+      }),
+    ).resolves.toBe(1);
+  });
+
   it('is idempotent across restarts', async () => {
     await expect(useCase.execute(initialAdmin())).resolves.toEqual({
       status: 'already_exists',
@@ -88,6 +96,9 @@ describe('Master realm bootstrap (e2e)', () => {
     await expect(masterRealms()).resolves.toBe(1);
     await expect(
       prisma.user.count({ where: { realm: { name: 'master' } } }),
+    ).resolves.toBe(1);
+    await expect(
+      prisma.signingKey.count({ where: { realm: { name: 'master' } } }),
     ).resolves.toBe(1);
   });
 });
