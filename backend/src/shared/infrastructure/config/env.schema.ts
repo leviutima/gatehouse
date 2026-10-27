@@ -17,15 +17,12 @@ export const envSchema = z
       .refine((value) => !value.endsWith('/'), 'must not end with "/"')
       .default('http://localhost:9000'),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-    GATEHOUSE_ADMIN_USERNAME: z
+    GATEHOUSE_KEY_ENCRYPTION_KEY: z
       .string()
-      .trim()
-      .min(3)
-      .max(64)
-      .regex(/^[a-zA-Z0-9._-]+$/, 'only letters, digits, ".", "_" and "-"')
-      .optional(),
+      .regex(/^[A-Za-z0-9+/]{43}=$/, 'must be 32 bytes encoded as base64'),
+    GATEHOUSE_ADMIN_USERNAME: z.string().trim().min(1).optional(),
     GATEHOUSE_ADMIN_EMAIL: z.email().optional(),
-    GATEHOUSE_ADMIN_PASSWORD: z.string().min(12).max(256).optional(),
+    GATEHOUSE_ADMIN_PASSWORD: z.string().min(1).optional(),
   })
   .superRefine((env, ctx) => {
     const missing = ADMIN_KEYS.filter((key) => env[key] === undefined);

@@ -1,7 +1,7 @@
 import { PasswordHasher } from '../../../../shared/application/crypto/password-hasher.js';
 import { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
-import { UsernameRequiredError } from '../../../realms/domain/errors/username-required.error.js';
+import { UsernameRequiredError } from '../../domain/errors/username-required.error.js';
 import { WeakPasswordError } from '../../../realms/domain/errors/weak-password.error.js';
 import {
   LoginIdentifier,
@@ -14,6 +14,7 @@ import {
   CreateUserData,
   UserRepository,
 } from '../../domain/repositories/user.repository.js';
+import { UserRegistrar } from '../services/user-registrar.js';
 import { CreateUserUseCase } from './create-user.use-case.js';
 
 const now = new Date('2026-10-24T00:00:00Z');
@@ -26,6 +27,7 @@ function realm(name: string, loginIdentifier: LoginIdentifierType): Realm {
     enabled: true,
     loginIdentifier,
     passwordMinLength: 12,
+    accessTokenLifespan: 300,
     createdAt: now,
     updatedAt: now,
   });
@@ -88,8 +90,7 @@ describe('CreateUserUseCase', () => {
         realm('shop', LoginIdentifier.USERNAME_OR_EMAIL),
         realm('newsletter', LoginIdentifier.EMAIL),
       ]),
-      users,
-      hasher,
+      new UserRegistrar(users, hasher),
     );
   });
 

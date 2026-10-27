@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
 import { BootstrapMasterRealmUseCase } from '../src/modules/bootstrap/application/use-cases/bootstrap-master-realm.use-case.js';
 import { MasterAdminNotConfiguredError } from '../src/modules/bootstrap/application/errors/master-admin-not-configured.error.js';
+import { WeakPasswordError } from '../src/modules/realms/domain/errors/weak-password.error.js';
 import { PasswordHasher } from '../src/shared/application/crypto/password-hasher.js';
 import type { Env } from '../src/shared/infrastructure/config/env.schema.js';
 import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service.js';
@@ -57,6 +58,14 @@ describe('Master realm bootstrap (e2e)', () => {
     ).resolves.toBe(true);
   });
 
+  it('gives the master realm exactly one active signing key on boot', async () => {
+    await expect(
+      prisma.signingKey.count({
+        where: { realm: { name: 'master' }, status: 'ACTIVE' },
+      }),
+    ).resolves.toBe(1);
+  });
+
   it('is idempotent across restarts', async () => {
     await expect(useCase.execute(initialAdmin())).resolves.toEqual({
       status: 'already_exists',
@@ -70,6 +79,15 @@ describe('Master realm bootstrap (e2e)', () => {
     await expect(useCase.execute(null)).rejects.toBeInstanceOf(
       MasterAdminNotConfiguredError,
     );
+    await expect(masterRealms()).resolves.toBe(0);
+  });
+
+  it('rolls back the master realm when the initial admin breaks the realm rules', async () => {
+    await prisma.realm.deleteMany({ where: { name: 'master' } });
+
+    await expect(
+      useCase.execute({ ...initialAdmin(), password: 'too-short' }),
+    ).rejects.toBeInstanceOf(WeakPasswordError);
     await expect(masterRealms()).resolves.toBe(0);
   });
 
@@ -88,6 +106,9 @@ describe('Master realm bootstrap (e2e)', () => {
     await expect(masterRealms()).resolves.toBe(1);
     await expect(
       prisma.user.count({ where: { realm: { name: 'master' } } }),
+    ).resolves.toBe(1);
+    await expect(
+      prisma.signingKey.count({ where: { realm: { name: 'master' } } }),
     ).resolves.toBe(1);
   });
 });

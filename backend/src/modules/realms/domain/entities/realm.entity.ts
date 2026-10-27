@@ -1,9 +1,7 @@
-import { UsernameRequiredError } from '../errors/username-required.error.js';
-import { WeakPasswordError } from '../errors/weak-password.error.js';
 import { LoginIdentifier } from '../login-identifier.js';
+import { PasswordPolicy } from '../password-policy.js';
 
 export const MASTER_REALM_NAME = 'master';
-export const PASSWORD_MAX_LENGTH = 256;
 
 export interface RealmProps {
   id: string;
@@ -12,6 +10,7 @@ export interface RealmProps {
   enabled: boolean;
   loginIdentifier: LoginIdentifier;
   passwordMinLength: number;
+  accessTokenLifespan: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +22,7 @@ export class Realm {
   readonly enabled: boolean;
   readonly loginIdentifier: LoginIdentifier;
   readonly passwordMinLength: number;
+  readonly accessTokenLifespan: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -33,6 +33,7 @@ export class Realm {
     this.enabled = props.enabled;
     this.loginIdentifier = props.loginIdentifier;
     this.passwordMinLength = props.passwordMinLength;
+    this.accessTokenLifespan = props.accessTokenLifespan;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
@@ -45,20 +46,7 @@ export class Realm {
     return this.loginIdentifier === LoginIdentifier.EMAIL;
   }
 
-  resolveUsername(input: { username?: string; email: string }): string {
-    if (this.usesEmailAsUsername) {
-      return input.email;
-    }
-    if (!input.username) {
-      throw new UsernameRequiredError();
-    }
-    return input.username;
-  }
-
-  assertPasswordAllowed(password: string): void {
-    const length = Array.from(password).length;
-    if (length < this.passwordMinLength || length > PASSWORD_MAX_LENGTH) {
-      throw new WeakPasswordError(this.passwordMinLength, PASSWORD_MAX_LENGTH);
-    }
+  get passwordPolicy(): PasswordPolicy {
+    return new PasswordPolicy(this.passwordMinLength);
   }
 }

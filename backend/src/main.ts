@@ -2,12 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
 import type { Env } from './shared/infrastructure/config/env.schema.js';
+import { setupSwagger } from './shared/presentation/openapi/setup-swagger.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+  if (config.get('NODE_ENV', { infer: true }) !== 'production') {
+    setupSwagger(app);
+  }
   await app.listen(config.get('PORT', { infer: true }));
 }
 await bootstrap();
