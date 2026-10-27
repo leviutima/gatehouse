@@ -1,0 +1,64 @@
+name: gatehouse
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: gatehouse-postgres
+    environment:
+      POSTGRES_DB: gatehouse
+      POSTGRES_USER: gatehouse
+      POSTGRES_PASSWORD: gatehouse
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gatehouse -d gatehouse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./backend
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://gatehouse:gatehouse@postgres:5432/gatehouse?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 9000
+      GATEHOUSE_ISSUER: ${GATEHOUSE_ISSUER:-http://localhost:9000}
+      DATABASE_URL: postgresql://gatehouse:gatehouse@postgres:5432/gatehouse?schema=public
+      GATEHOUSE_KEY_ENCRYPTION_KEY: ${GATEHOUSE_KEY_ENCRYPTION_KEY:?set GATEHOUSE_KEY_ENCRYPTION_KEY in .env}
+      GATEHOUSE_ADMIN_USERNAME: ${GATEHOUSE_ADMIN_USERNAME:-admin}
+      GATEHOUSE_ADMIN_EMAIL: ${GATEHOUSE_ADMIN_EMAIL:-admin@gatehouse.local}
+      GATEHOUSE_ADMIN_PASSWORD: ${GATEHOUSE_ADMIN_PASSWORD:?set GATEHOUSE_ADMIN_PASSWORD in .env}
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: gatehouse-pgdata

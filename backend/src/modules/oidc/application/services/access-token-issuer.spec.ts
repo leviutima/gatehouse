@@ -70,6 +70,10 @@ class FakeRealmIssuer extends RealmIssuer {
   forRealm(realmName: string): string {
     return `https://auth.example.com/realms/${realmName}`;
   }
+
+  realmNameOf(): string | null {
+    return null;
+  }
 }
 
 describe('AccessTokenIssuer', () => {
