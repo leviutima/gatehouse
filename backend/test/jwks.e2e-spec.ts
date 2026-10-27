@@ -9,7 +9,7 @@ import {
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
-import { EnsureActiveSigningKeyUseCase } from '../src/modules/signing-keys/application/use-cases/ensure-active-signing-key.use-case.js';
+import { SigningKeyProvisioner } from '../src/modules/signing-keys/application/services/signing-key-provisioner.js';
 import { KeyEncryptor } from '../src/shared/application/crypto/key-encryptor.js';
 import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service.js';
 
@@ -38,7 +38,7 @@ describe('JWKS endpoint (e2e)', () => {
     const realm = await prisma.realm.create({
       data: { name: realmName, displayName: 'JWKS' },
     });
-    const key = await app.get(EnsureActiveSigningKeyUseCase).execute(realm.id);
+    const key = await app.get(SigningKeyProvisioner).ensureActive(realm.id);
 
     const response = await request(app.getHttpServer())
       .get(certsPath(realmName))
@@ -65,7 +65,7 @@ describe('JWKS endpoint (e2e)', () => {
     const realm = await prisma.realm.findUniqueOrThrow({
       where: { name: realmName },
     });
-    const key = await app.get(EnsureActiveSigningKeyUseCase).execute(realm.id);
+    const key = await app.get(SigningKeyProvisioner).ensureActive(realm.id);
     const privateKey = await importPKCS8(
       app.get(KeyEncryptor).decrypt(key.encryptedPrivateKey),
       'ES256',

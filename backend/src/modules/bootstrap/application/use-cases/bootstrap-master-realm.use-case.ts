@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PasswordHasher } from '../../../../shared/application/crypto/password-hasher.js';
 import { TransactionManager } from '../../../../shared/application/persistence/transaction-manager.js';
-import { EnsureActiveSigningKeyUseCase } from '../../../signing-keys/application/use-cases/ensure-active-signing-key.use-case.js';
+import { SigningKeyProvisioner } from '../../../signing-keys/application/services/signing-key-provisioner.js';
+import {
+  RegisterUserInput,
+  UserRegistrar,
+} from '../../../users/application/services/user-registrar.js';
 import type { User } from '../../../users/domain/entities/user.entity.js';
-import { UserRepository } from '../../../users/domain/repositories/user.repository.js';
 import {
   MASTER_REALM_NAME,
   Realm,
@@ -13,11 +15,7 @@ import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
 import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
 import { MasterAdminNotConfiguredError } from '../errors/master-admin-not-configured.error.js';
 
-export interface InitialAdmin {
-  username: string;
-  email: string;
-  password: string;
-}
+export type InitialAdmin = Required<RegisterUserInput>;
 
 export type BootstrapMasterRealmResult =
   | { status: 'created'; realm: Realm; admin: User }
@@ -27,10 +25,9 @@ export type BootstrapMasterRealmResult =
 export class BootstrapMasterRealmUseCase {
   constructor(
     private readonly realms: RealmRepository,
-    private readonly users: UserRepository,
-    private readonly passwordHasher: PasswordHasher,
+    private readonly userRegistrar: UserRegistrar,
+    private readonly signingKeyProvisioner: SigningKeyProvisioner,
     private readonly transactions: TransactionManager,
-    private readonly ensureActiveSigningKey: EnsureActiveSigningKeyUseCase,
   ) {}
 
   async execute(
@@ -44,8 +41,6 @@ export class BootstrapMasterRealmUseCase {
       throw new MasterAdminNotConfiguredError();
     }
 
-    const passwordHash = await this.passwordHasher.hash(initialAdmin.password);
-
     try {
       return await this.transactions.run(async () => {
         const realm = await this.realms.create({
@@ -53,14 +48,8 @@ export class BootstrapMasterRealmUseCase {
           displayName: 'Master',
           loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
         });
-        const admin = await this.users.create({
-          realmId: realm.id,
-          username: initialAdmin.username,
-          email: initialAdmin.email,
-          emailVerified: false,
-          passwordHash,
-        });
-        await this.ensureActiveSigningKey.execute(realm.id);
+        const admin = await this.userRegistrar.register(realm, initialAdmin);
+        await this.signingKeyProvisioner.ensureActive(realm.id);
         return { status: 'created', realm, admin };
       });
     } catch (error) {
@@ -77,7 +66,7 @@ export class BootstrapMasterRealmUseCase {
     master: Realm | null,
   ): Promise<BootstrapMasterRealmResult> {
     if (master) {
-      await this.ensureActiveSigningKey.execute(master.id);
+      await this.signingKeyProvisioner.ensureActive(master.id);
     }
     return { status: 'already_exists' };
   }

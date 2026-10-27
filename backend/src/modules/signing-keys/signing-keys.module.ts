@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RealmsModule } from '../realms/realms.module.js';
 import { KeyPairGenerator } from './application/key-pair-generator.js';
-import { EnsureActiveSigningKeyUseCase } from './application/use-cases/ensure-active-signing-key.use-case.js';
+import { SigningKeyProvisioner } from './application/services/signing-key-provisioner.js';
 import { GetRealmJwksUseCase } from './application/use-cases/get-realm-jwks.use-case.js';
 import { SigningKeyRepository } from './domain/repositories/signing-key.repository.js';
 import { JoseEs256KeyPairGenerator } from './infrastructure/crypto/jose-es256-key-pair-generator.js';
@@ -14,9 +14,9 @@ import { JwksController } from './presentation/controllers/jwks.controller.js';
   providers: [
     { provide: SigningKeyRepository, useClass: PrismaSigningKeyRepository },
     { provide: KeyPairGenerator, useClass: JoseEs256KeyPairGenerator },
-    EnsureActiveSigningKeyUseCase,
+    SigningKeyProvisioner,
     GetRealmJwksUseCase,
   ],
-  exports: [SigningKeyRepository, EnsureActiveSigningKeyUseCase],
+  exports: [SigningKeyRepository, SigningKeyProvisioner],
 })
 export class SigningKeysModule {}

@@ -7,7 +7,7 @@ import {
 } from '../../domain/repositories/signing-key.repository.js';
 import { SigningKeyStatus } from '../../domain/signing-key-status.js';
 import { GeneratedKeyPair, KeyPairGenerator } from '../key-pair-generator.js';
-import { EnsureActiveSigningKeyUseCase } from './ensure-active-signing-key.use-case.js';
+import { SigningKeyProvisioner } from './signing-key-provisioner.js';
 
 const now = new Date('2026-10-27T00:00:00Z');
 
@@ -56,15 +56,15 @@ class FakeKeyEncryptor extends KeyEncryptor {
   }
 }
 
-describe('EnsureActiveSigningKeyUseCase', () => {
+describe('SigningKeyProvisioner', () => {
   let keys: InMemorySigningKeyRepository;
   let generator: FakeKeyPairGenerator;
-  let useCase: EnsureActiveSigningKeyUseCase;
+  let provisioner: SigningKeyProvisioner;
 
   beforeEach(() => {
     keys = new InMemorySigningKeyRepository();
     generator = new FakeKeyPairGenerator();
-    useCase = new EnsureActiveSigningKeyUseCase(
+    provisioner = new SigningKeyProvisioner(
       keys,
       generator,
       new FakeKeyEncryptor(),
@@ -72,7 +72,7 @@ describe('EnsureActiveSigningKeyUseCase', () => {
   });
 
   it('creates an active key with the private key encrypted', async () => {
-    const key = await useCase.execute('realm-1');
+    const key = await provisioner.ensureActive('realm-1');
 
     expect(key).toMatchObject({
       realmId: 'realm-1',
@@ -84,8 +84,8 @@ describe('EnsureActiveSigningKeyUseCase', () => {
   });
 
   it('returns the existing active key without generating a new one', async () => {
-    const first = await useCase.execute('realm-1');
-    const second = await useCase.execute('realm-1');
+    const first = await provisioner.ensureActive('realm-1');
+    const second = await provisioner.ensureActive('realm-1');
 
     expect(second.id).toBe(first.id);
     expect(generator.generate).toHaveBeenCalledTimes(1);
@@ -93,8 +93,8 @@ describe('EnsureActiveSigningKeyUseCase', () => {
   });
 
   it('keeps keys of different realms apart', async () => {
-    const first = await useCase.execute('realm-1');
-    const second = await useCase.execute('realm-2');
+    const first = await provisioner.ensureActive('realm-1');
+    const second = await provisioner.ensureActive('realm-2');
 
     expect(second.id).not.toBe(first.id);
     expect(second.realmId).toBe('realm-2');
@@ -108,7 +108,7 @@ describe('EnsureActiveSigningKeyUseCase', () => {
       throw new ActiveSigningKeyAlreadyExistsError();
     });
 
-    const key = await useCase.execute('realm-1');
+    const key = await provisioner.ensureActive('realm-1');
 
     expect(key.id).toBe(winner?.id);
     expect(keys.keys).toHaveLength(1);
@@ -119,7 +119,7 @@ describe('EnsureActiveSigningKeyUseCase', () => {
       new ActiveSigningKeyAlreadyExistsError(),
     );
 
-    await expect(useCase.execute('realm-1')).rejects.toBeInstanceOf(
+    await expect(provisioner.ensureActive('realm-1')).rejects.toBeInstanceOf(
       ActiveSigningKeyAlreadyExistsError,
     );
   });

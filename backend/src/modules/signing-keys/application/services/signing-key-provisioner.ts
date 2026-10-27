@@ -7,14 +7,14 @@ import { SigningKeyStatus } from '../../domain/signing-key-status.js';
 import { KeyPairGenerator } from '../key-pair-generator.js';
 
 @Injectable()
-export class EnsureActiveSigningKeyUseCase {
+export class SigningKeyProvisioner {
   constructor(
     private readonly keys: SigningKeyRepository,
     private readonly generator: KeyPairGenerator,
     private readonly encryptor: KeyEncryptor,
   ) {}
 
-  async execute(realmId: string): Promise<SigningKey> {
+  async ensureActive(realmId: string): Promise<SigningKey> {
     const active = await this.keys.findActive(realmId);
     if (active) {
       return active;

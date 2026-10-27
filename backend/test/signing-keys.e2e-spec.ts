@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { CompactSign, compactVerify, importJWK, importPKCS8 } from 'jose';
 import { AppModule } from '../src/app.module.js';
-import { EnsureActiveSigningKeyUseCase } from '../src/modules/signing-keys/application/use-cases/ensure-active-signing-key.use-case.js';
+import { SigningKeyProvisioner } from '../src/modules/signing-keys/application/services/signing-key-provisioner.js';
 import { ActiveSigningKeyAlreadyExistsError } from '../src/modules/signing-keys/domain/errors/active-signing-key-already-exists.error.js';
 import { SigningKeyRepository } from '../src/modules/signing-keys/domain/repositories/signing-key.repository.js';
 import { SigningKeyStatus } from '../src/modules/signing-keys/domain/signing-key-status.js';
@@ -12,7 +12,7 @@ import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.servic
 describe('Signing keys (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let ensureActiveKey: EnsureActiveSigningKeyUseCase;
+  let provisioner: SigningKeyProvisioner;
   let keys: SigningKeyRepository;
   let realmId: string;
   const realmName = `keys-${Date.now()}`;
@@ -24,7 +24,7 @@ describe('Signing keys (e2e)', () => {
     app = moduleRef.createNestApplication();
     await app.init();
     prisma = app.get(PrismaService);
-    ensureActiveKey = app.get(EnsureActiveSigningKeyUseCase);
+    provisioner = app.get(SigningKeyProvisioner);
     keys = app.get(SigningKeyRepository);
 
     ({ id: realmId } = await prisma.realm.create({
@@ -38,7 +38,7 @@ describe('Signing keys (e2e)', () => {
   });
 
   it('stores the private key encrypted and reusable for signing', async () => {
-    const key = await ensureActiveKey.execute(realmId);
+    const key = await provisioner.ensureActive(realmId);
 
     const row = await prisma.signingKey.findUniqueOrThrow({
       where: { id: key.id },
@@ -62,8 +62,8 @@ describe('Signing keys (e2e)', () => {
   });
 
   it('returns the same active key on later calls', async () => {
-    const first = await ensureActiveKey.execute(realmId);
-    const second = await ensureActiveKey.execute(realmId);
+    const first = await provisioner.ensureActive(realmId);
+    const second = await provisioner.ensureActive(realmId);
 
     expect(second.id).toBe(first.id);
     await expect(prisma.signingKey.count({ where: { realmId } })).resolves.toBe(
@@ -72,7 +72,7 @@ describe('Signing keys (e2e)', () => {
   });
 
   it('refuses a second active key for the realm', async () => {
-    const active = await ensureActiveKey.execute(realmId);
+    const active = await provisioner.ensureActive(realmId);
 
     await expect(
       keys.create({
@@ -86,7 +86,7 @@ describe('Signing keys (e2e)', () => {
   });
 
   it('publishes the active and passive keys, newest first', async () => {
-    const active = await ensureActiveKey.execute(realmId);
+    const active = await provisioner.ensureActive(realmId);
     const passive = await keys.create({
       realmId,
       algorithm: 'ES256',
