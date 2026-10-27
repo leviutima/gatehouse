@@ -32,14 +32,15 @@ enum SigningKeyStatus {
 }
 
 model Realm {
-  id                String          @id @default(uuid(7)) @db.Uuid
-  name              String          @unique
-  displayName       String          @map("display_name")
-  enabled           Boolean         @default(true)
-  loginIdentifier   LoginIdentifier @default(USERNAME_OR_EMAIL) @map("login_identifier")
-  passwordMinLength Int             @default(12) @map("password_min_length")
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  name                String          @unique
+  displayName         String          @map("display_name")
+  enabled             Boolean         @default(true)
+  loginIdentifier     LoginIdentifier @default(USERNAME_OR_EMAIL) @map("login_identifier")
+  passwordMinLength   Int             @default(12) @map("password_min_length")
+  accessTokenLifespan Int             @default(300) @map("access_token_lifespan")
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
   users       User[]
   clients     Client[]
