@@ -10,6 +10,7 @@ Siglas e termos que aparecem no código, nos tokens e nas respostas HTTP do Gate
 - [JWK e JWKS: a chave pública publicada](#jwk-e-jwks-a-chave-pública-publicada)
 - [Endpoint de token](#endpoint-de-token)
 - [Autenticação nas requisições HTTP](#autenticação-nas-requisições-http)
+- [Login no navegador](#login-no-navegador)
 - [Códigos de erro](#códigos-de-erro)
 - [Criptografia](#criptografia)
 - [Banco de dados e infraestrutura](#banco-de-dados-e-infraestrutura)
@@ -197,6 +198,32 @@ O header `Cache-Control: public, max-age=300` desse endpoint permite que os serv
 
 ---
 
+## Login no navegador
+
+`GET` e `POST /realms/{realm}/protocol/openid-connect/auth`, o início do fluxo `authorization_code`.
+
+| Termo | O que é |
+|---|---|
+| **Endpoint de autorização** (`/auth`) | Para onde o app manda o navegador para o usuário fazer login. Valida o pedido, mostra a tela de login (ou reaproveita a sessão) e devolve o navegador ao app com um código. |
+| **Authorization code** | Código de uso único, válido por 60 segundos, que o app troca por tokens no `/token`. O Gatehouse guarda só o hash dele. |
+| **`response_type=code`** | Diz que o app quer um código de autorização. É o único tipo aceito. |
+| **`redirect_uri`** | Para onde o navegador volta depois do login. Precisa ser **exatamente** uma das cadastradas no client. |
+| **`state`** | Valor aleatório que o app envia e recebe de volta igual. Serve para o app ligar a resposta ao pedido que ele fez e se proteger de CSRF. |
+| **`nonce`** | Valor aleatório que o app envia e que vai voltar dentro do `id_token`, para impedir que um `id_token` antigo seja reaproveitado. |
+| **`code_challenge`** / **`code_verifier`** | As duas metades do PKCE. O app envia o `code_challenge` (o SHA-256 do `code_verifier`) no `/auth` e o `code_verifier` no `/token`. |
+| **`code_challenge_method=S256`** | Diz que o `code_challenge` é um SHA-256. É o único método aceito; o `plain` é recusado. |
+| **`iss` na resposta** | O issuer do realm, enviado junto com o código na volta para o app (RFC 9207). Permite ao app confirmar que a resposta veio do IdP certo. |
+| **Sessão SSO** | O login guardado no navegador pelo cookie `GATEHOUSE_SESSION`, que leva só um valor aleatório; o banco guarda o hash. Enquanto a sessão vale, outros apps do mesmo realm entram sem pedir a senha de novo. |
+| **Sessão ociosa** / **validade máxima** | A sessão cai se ficar sem uso por `sessionIdleTimeout` (30 min por padrão) ou, mesmo em uso, depois de `sessionMaxLifespan` (10 h por padrão). Os dois são configurados por realm. |
+| **CSRF** | Cross-Site Request Forgery: um site malicioso fazer o navegador enviar um formulário em nome do usuário. O formulário de login leva um token que precisa bater com o do cookie `GATEHOUSE_LOGIN_CSRF`. |
+| **Redirecionador aberto** | Um servidor que redireciona para qualquer endereço recebido na URL, o que um atacante usa para dar credibilidade a links de phishing. O `/auth` mostra uma página de erro, em vez de redirecionar, sempre que o client ou a `redirect_uri` não são reconhecidos. |
+| **Clickjacking** | Carregar a tela de login dentro de um `iframe` invisível para enganar o usuário. Bloqueado por `X-Frame-Options: DENY` e `frame-ancestors 'none'`. |
+| **CSP** | Content Security Policy: o cabeçalho que diz ao navegador o que a página pode carregar. A tela de login não permite script nenhum. |
+| **Tema de login** | A aparência da tela de login. Hoje existe o tema padrão; a porta `LoginTheme` permite trocar por temas personalizados no futuro. |
+| **`303 See Other`** | O redirect usado depois do `POST` de login, que faz o navegador seguir com `GET` e nunca reenviar a senha. |
+
+---
+
 ## Códigos de erro
 
 ### Do OAuth (endpoint `/token`)
@@ -243,6 +270,8 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 | **`client_already_exists`** | 409 | Já existe um client com esse `client_id` no realm. |
 | **`invalid_client_configuration`** | 422 | A configuração quebra uma regra do client: `client_id` ou nome fora do padrão, client público com `client_credentials`, `authorization_code` sem redirect URI, redirect URI inválida etc. |
 | **`public_client_has_no_secret`** | 422 | Pedido de secret novo para um client público, que não tem secret. |
+| **`unsupported_response_type`** | redirect | O `/auth` recebeu um `response_type` diferente de `code`. |
+| **`invalid_scope`** | redirect | O `/auth` recebeu um escopo fora de `openid`, `profile` e `email`. |
 | **`last_realm_admin`** | 409 | Desabilitar o usuário ou tirar o papel `admin` dele deixaria o realm sem nenhum admin habilitado. |
 
 ---
@@ -298,8 +327,7 @@ Termos que já aparecem em decisões ou no modelo de dados, mas cujo fluxo ainda
 
 | Sigla / termo | O que é |
 |---|---|
-| **PKCE** | Proof Key for Code Exchange (RFC 7636), pronuncia-se "pixy". Proteção do `authorization_code`: o client gera um segredo aleatório (`code_verifier`), envia só o hash dele (`code_challenge`) no início do login e o segredo original na troca do código. Quem roubar o código não consegue trocá-lo. Vai ser obrigatório para todos os clients. |
-| **S256** | O método de PKCE em que o `code_challenge` é o SHA-256 do `code_verifier`. O único que o Gatehouse vai aceitar. |
+| **PKCE** | Proof Key for Code Exchange (RFC 7636), pronuncia-se "pixy". Proteção do `authorization_code`: o client gera um segredo aleatório (`code_verifier`), envia só o hash dele (`code_challenge`) no início do login e o segredo original na troca do código. Quem roubar o código não consegue trocá-lo. O `/auth` já exige o `code_challenge` com `S256`; a conferência do `code_verifier` entra com o `/token` de `authorization_code`. |
 | **`id_token`** | O token do OIDC que diz quem é o usuário que fez login. Será emitido junto com o access token no `authorization_code`. |
 | **Refresh token** | Token de longa duração usado para obter novos access tokens sem novo login. Revogável. |
 | **`scope`** | Lista de permissões pedidas pelo client (por exemplo, `openid profile`). Hoje o parâmetro é aceito e ignorado, e o `Principal` sai com `scopes: []`. |
