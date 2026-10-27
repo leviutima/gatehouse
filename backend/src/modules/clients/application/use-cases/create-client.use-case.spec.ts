@@ -1,3 +1,4 @@
+import { SecretGenerator } from '../../../../shared/application/crypto/secret-generator.js';
 import { SecretHasher } from '../../../../shared/application/crypto/secret-hasher.js';
 import { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
@@ -66,15 +67,22 @@ class FakeSecretHasher extends SecretHasher {
   }
 }
 
+class SequentialSecretGenerator extends SecretGenerator {
+  readonly generate = vi.fn(() => `secret-${this.generate.mock.calls.length}`);
+}
+
 describe('CreateClientUseCase', () => {
   let clients: InMemoryClientRepository;
+  let secrets: SequentialSecretGenerator;
   let useCase: CreateClientUseCase;
 
   beforeEach(() => {
     clients = new InMemoryClientRepository();
+    secrets = new SequentialSecretGenerator();
     useCase = new CreateClientUseCase(
       new InMemoryRealmRepository(),
       clients,
+      secrets,
       new FakeSecretHasher(),
     );
   });
@@ -97,10 +105,11 @@ describe('CreateClientUseCase', () => {
     grantTypes: [GrantType.CLIENT_CREDENTIALS],
   };
 
-  it('creates a public client without a secret', async () => {
+  it('creates a public client without generating a secret', async () => {
     const { client, secret } = await useCase.execute(web);
 
     expect(secret).toBeNull();
+    expect(secrets.generate).not.toHaveBeenCalled();
     expect(client).toMatchObject({
       realmId: 'shop-id',
       clientId: 'web',
@@ -112,15 +121,8 @@ describe('CreateClientUseCase', () => {
   it('creates a confidential client and returns the plain secret only once', async () => {
     const { client, secret } = await useCase.execute(billing);
 
-    expect(secret).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(client.secretHash).toBe(`hashed:${secret}`);
-  });
-
-  it('generates a different secret for every confidential client', async () => {
-    const first = await useCase.execute(billing);
-    const second = await useCase.execute({ ...billing, clientId: 'reports' });
-
-    expect(first.secret).not.toBe(second.secret);
+    expect(secret).toBe('secret-1');
+    expect(client.secretHash).toBe('hashed:secret-1');
   });
 
   it('fails for an unknown realm', async () => {

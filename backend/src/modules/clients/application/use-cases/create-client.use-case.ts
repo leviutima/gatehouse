@@ -1,5 +1,5 @@
-import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { SecretGenerator } from '../../../../shared/application/crypto/secret-generator.js';
 import { SecretHasher } from '../../../../shared/application/crypto/secret-hasher.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
 import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
@@ -10,8 +10,6 @@ import {
   ClientRepository,
   CreateClientData,
 } from '../../domain/repositories/client.repository.js';
-
-const SECRET_BYTES = 32;
 
 export interface CreateClientInput {
   realmName: string;
@@ -32,6 +30,7 @@ export class CreateClientUseCase {
   constructor(
     private readonly realms: RealmRepository,
     private readonly clients: ClientRepository,
+    private readonly secretGenerator: SecretGenerator,
     private readonly secretHasher: SecretHasher,
   ) {}
 
@@ -43,7 +42,7 @@ export class CreateClientUseCase {
 
     const secret =
       input.type === ClientType.CONFIDENTIAL
-        ? randomBytes(SECRET_BYTES).toString('base64url')
+        ? this.secretGenerator.generate()
         : null;
 
     const data: CreateClientData = {
