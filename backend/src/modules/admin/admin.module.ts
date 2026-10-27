@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { RealmsModule } from '../realms/realms.module.js';
+import { RolesModule } from '../roles/roles.module.js';
+import { SigningKeysModule } from '../signing-keys/signing-keys.module.js';
+import { UsersModule } from '../users/users.module.js';
+import { CreateRealmUseCase } from './application/use-cases/create-realm.use-case.js';
+import { AdminRealmsController } from './presentation/controllers/admin-realms.controller.js';
+import { AdminGuard } from './presentation/guards/admin.guard.js';
+
+@Module({
+  imports: [RealmsModule, UsersModule, RolesModule, SigningKeysModule],
+  controllers: [AdminRealmsController],
+  providers: [CreateRealmUseCase, AdminGuard],
+})
+export class AdminModule {}

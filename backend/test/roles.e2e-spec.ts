@@ -87,6 +87,33 @@ describe('Roles (e2e)', () => {
     await expect(provisioner.hasAnyAdmin(otherId)).resolves.toBe(false);
   });
 
+  it('answers whether an enabled user holds a role in a realm', async () => {
+    await expect(roles.isUserInRole(shop, shopUserId, 'admin')).resolves.toBe(
+      true,
+    );
+    await expect(roles.isUserInRole(other, shopUserId, 'admin')).resolves.toBe(
+      false,
+    );
+    await expect(roles.isUserInRole(shop, shopUserId, 'billing')).resolves.toBe(
+      false,
+    );
+
+    await prisma.user.update({
+      where: { id: shopUserId },
+      data: { enabled: false },
+    });
+    try {
+      await expect(roles.isUserInRole(shop, shopUserId, 'admin')).resolves.toBe(
+        false,
+      );
+    } finally {
+      await prisma.user.update({
+        where: { id: shopUserId },
+        data: { enabled: true },
+      });
+    }
+  });
+
   it('drops the assignments when the user is deleted', async () => {
     await prisma.user.delete({ where: { id: shopUserId } });
 

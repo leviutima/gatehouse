@@ -54,6 +54,10 @@ class InMemoryRoleRepository extends RoleRepository {
         .length,
     );
   }
+
+  isUserInRole(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
 }
 
 describe('AdminRoleProvisioner', () => {

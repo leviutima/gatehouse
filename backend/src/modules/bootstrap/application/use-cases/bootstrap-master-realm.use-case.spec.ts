@@ -45,6 +45,10 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve(this.realms.find((r) => r.name === name) ?? null);
   }
 
+  list(): Promise<Realm[]> {
+    return Promise.resolve([...this.realms]);
+  }
+
   create(data: CreateRealmData): Promise<Realm> {
     if (this.failCreateWith) {
       return Promise.reject(this.failCreateWith);
@@ -128,6 +132,10 @@ class InMemoryRoleRepository extends RoleRepository {
       this.assignments.filter((assignment) => assignment.roleId === roleId)
         .length,
     );
+  }
+
+  isUserInRole(): Promise<boolean> {
+    return Promise.resolve(false);
   }
 }
 

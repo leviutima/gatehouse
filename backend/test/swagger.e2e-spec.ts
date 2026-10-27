@@ -65,6 +65,26 @@ describe('Swagger (e2e)', () => {
     ]);
   });
 
+  it('documents the admin API behind a bearer access token', async () => {
+    const { body } = await request(app.getHttpServer())
+      .get('/docs-json')
+      .expect(200);
+
+    const realms = body.paths['/admin/realms'];
+    expect(realms.post.security).toEqual([{ access_token: [] }]);
+    expect(Object.keys(realms.post.responses).sort()).toEqual([
+      '201',
+      '401',
+      '403',
+      '409',
+      '422',
+    ]);
+    expect(body.components.securitySchemes.access_token).toMatchObject({
+      type: 'http',
+      scheme: 'bearer',
+    });
+  });
+
   it('serves the Swagger UI', async () => {
     const response = await request(app.getHttpServer())
       .get('/docs')
