@@ -1,5 +1,6 @@
 import { KeyEncryptor } from '../../../../shared/application/crypto/key-encryptor.js';
 import { SigningKey } from '../../domain/entities/signing-key.entity.js';
+import { ActiveSigningKeyAlreadyExistsError } from '../../domain/errors/active-signing-key-already-exists.error.js';
 import {
   CreateSigningKeyData,
   SigningKeyRepository,
@@ -97,5 +98,29 @@ describe('EnsureActiveSigningKeyUseCase', () => {
 
     expect(second.id).not.toBe(first.id);
     expect(second.realmId).toBe('realm-2');
+  });
+
+  it('returns the key of a concurrent caller that won the race', async () => {
+    const create = keys.create.bind(keys);
+    let winner: SigningKey | undefined;
+    vi.spyOn(keys, 'create').mockImplementationOnce(async (data) => {
+      winner = await create(data);
+      throw new ActiveSigningKeyAlreadyExistsError();
+    });
+
+    const key = await useCase.execute('realm-1');
+
+    expect(key.id).toBe(winner?.id);
+    expect(keys.keys).toHaveLength(1);
+  });
+
+  it('propagates a conflict when no active key can be found afterwards', async () => {
+    vi.spyOn(keys, 'create').mockRejectedValueOnce(
+      new ActiveSigningKeyAlreadyExistsError(),
+    );
+
+    await expect(useCase.execute('realm-1')).rejects.toBeInstanceOf(
+      ActiveSigningKeyAlreadyExistsError,
+    );
   });
 });
