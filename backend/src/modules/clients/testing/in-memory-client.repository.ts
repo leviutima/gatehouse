@@ -1,9 +1,11 @@
+import { definedFields } from '../../../shared/testing/defined-fields.js';
 import { TEST_NOW } from '../../../shared/testing/test-clock.js';
 import { Client } from '../domain/entities/client.entity.js';
 import { ClientAlreadyExistsError } from '../domain/errors/client-already-exists.error.js';
 import {
   ClientRepository,
   CreateClientData,
+  UpdateClientData,
 } from '../domain/repositories/client.repository.js';
 
 export class InMemoryClientRepository extends ClientRepository {
@@ -20,6 +22,35 @@ export class InMemoryClientRepository extends ClientRepository {
         (client) => client.realmId === realmId && client.clientId === clientId,
       ) ?? null,
     );
+  }
+
+  list(realmId: string): Promise<Client[]> {
+    return Promise.resolve(
+      this.clients
+        .filter((client) => client.realmId === realmId)
+        .sort((a, b) => a.clientId.localeCompare(b.clientId)),
+    );
+  }
+
+  update(id: string, data: UpdateClientData): Promise<Client> {
+    const index = this.clients.findIndex((client) => client.id === id);
+    const current = this.clients[index];
+    const updated = new Client({
+      id: current.id,
+      realmId: current.realmId,
+      clientId: current.clientId,
+      name: current.name,
+      type: current.type,
+      secretHash: current.secretHash,
+      redirectUris: [...current.redirectUris],
+      grantTypes: [...current.grantTypes],
+      enabled: current.enabled,
+      createdAt: current.createdAt,
+      updatedAt: current.updatedAt,
+      ...definedFields(data),
+    });
+    this.clients[index] = updated;
+    return Promise.resolve(updated);
   }
 
   create(data: CreateClientData): Promise<Client> {

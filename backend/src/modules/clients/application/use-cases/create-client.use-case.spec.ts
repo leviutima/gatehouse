@@ -78,4 +78,20 @@ describe('CreateClientUseCase', () => {
     ).rejects.toBeInstanceOf(InvalidClientConfigurationError);
     expect(clients.clients).toHaveLength(0);
   });
+
+  it.each([
+    ['a client id with a space', { clientId: 'my web' }],
+    ['a blank name', { name: '   ' }],
+  ])('rejects %s before persisting it', async (_case, overrides) => {
+    await expect(
+      useCase.execute({ ...web, ...overrides }),
+    ).rejects.toBeInstanceOf(InvalidClientConfigurationError);
+    expect(clients.clients).toHaveLength(0);
+  });
+
+  it('stores the name without surrounding spaces', async () => {
+    const { client } = await useCase.execute({ ...web, name: '  Web  ' });
+
+    expect(client.name).toBe('Web');
+  });
 });
