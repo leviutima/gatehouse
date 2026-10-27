@@ -14,6 +14,7 @@ import {
   CreateUserData,
   UserRepository,
 } from '../../domain/repositories/user.repository.js';
+import { UserRegistrar } from '../services/user-registrar.js';
 import { CreateUserUseCase } from './create-user.use-case.js';
 
 const now = new Date('2026-10-24T00:00:00Z');
@@ -88,8 +89,7 @@ describe('CreateUserUseCase', () => {
         realm('shop', LoginIdentifier.USERNAME_OR_EMAIL),
         realm('newsletter', LoginIdentifier.EMAIL),
       ]),
-      users,
-      hasher,
+      new UserRegistrar(users, hasher),
     );
   });
 
