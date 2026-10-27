@@ -10,6 +10,7 @@ export const RealmMapper = {
       enabled: row.enabled,
       loginIdentifier: row.loginIdentifier,
       passwordMinLength: row.passwordMinLength,
+      accessTokenLifespan: row.accessTokenLifespan,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

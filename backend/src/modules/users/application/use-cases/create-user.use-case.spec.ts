@@ -27,6 +27,7 @@ function realm(name: string, loginIdentifier: LoginIdentifierType): Realm {
     enabled: true,
     loginIdentifier,
     passwordMinLength: 12,
+    accessTokenLifespan: 300,
     createdAt: now,
     updatedAt: now,
   });

@@ -10,6 +10,7 @@ export interface RealmProps {
   enabled: boolean;
   loginIdentifier: LoginIdentifier;
   passwordMinLength: number;
+  accessTokenLifespan: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ export class Realm {
   readonly enabled: boolean;
   readonly loginIdentifier: LoginIdentifier;
   readonly passwordMinLength: number;
+  readonly accessTokenLifespan: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -31,6 +33,7 @@ export class Realm {
     this.enabled = props.enabled;
     this.loginIdentifier = props.loginIdentifier;
     this.passwordMinLength = props.passwordMinLength;
+    this.accessTokenLifespan = props.accessTokenLifespan;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }

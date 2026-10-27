@@ -24,6 +24,7 @@ class InMemoryRealmRepository extends RealmRepository {
     enabled: true,
     loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
     passwordMinLength: 12,
+    accessTokenLifespan: 300,
     createdAt: now,
     updatedAt: now,
   });

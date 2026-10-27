@@ -46,6 +46,7 @@ class InMemoryRealmRepository extends RealmRepository {
       id: `realm-${this.realms.length + 1}`,
       enabled: true,
       passwordMinLength: 12,
+      accessTokenLifespan: 300,
       createdAt: now,
       updatedAt: now,
       ...data,

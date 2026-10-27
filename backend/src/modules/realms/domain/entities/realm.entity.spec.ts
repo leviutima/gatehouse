@@ -10,6 +10,7 @@ function realm(overrides: Partial<RealmProps> = {}): Realm {
     enabled: true,
     loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
     passwordMinLength: 12,
+    accessTokenLifespan: 300,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
