@@ -22,8 +22,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "postinstall": "prisma generate",
     "prebuild": "prisma generate",
-    "db:up": "docker compose up -d --wait",
-    "db:down": "docker compose down",
+    "db:up": "docker compose -f ../compose.yaml up -d --wait postgres",
+    "db:down": "docker compose -f ../compose.yaml stop postgres",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio"
