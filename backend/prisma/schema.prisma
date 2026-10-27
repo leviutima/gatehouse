@@ -15,6 +15,17 @@ enum LoginIdentifier {
   USERNAME_OR_EMAIL
 }
 
+enum ClientType {
+  PUBLIC
+  CONFIDENTIAL
+}
+
+enum GrantType {
+  AUTHORIZATION_CODE
+  REFRESH_TOKEN
+  CLIENT_CREDENTIALS
+}
+
 model Realm {
   id                String          @id @default(uuid(7)) @db.Uuid
   name              String          @unique
@@ -25,7 +36,8 @@ model Realm {
   createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  users User[]
+  users   User[]
+  clients Client[]
 
   @@map("realms")
 }
@@ -46,4 +58,23 @@ model User {
   @@unique([realmId, username])
   @@unique([realmId, email])
   @@map("users")
+}
+
+model Client {
+  id           String      @id @default(uuid(7)) @db.Uuid
+  realmId      String      @map("realm_id") @db.Uuid
+  clientId     String      @map("client_id")
+  name         String
+  type         ClientType
+  secretHash   String?     @map("secret_hash")
+  redirectUris String[]    @map("redirect_uris")
+  grantTypes   GrantType[] @map("grant_types")
+  enabled      Boolean     @default(true)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
+
+  @@unique([realmId, clientId])
+  @@map("clients")
 }
