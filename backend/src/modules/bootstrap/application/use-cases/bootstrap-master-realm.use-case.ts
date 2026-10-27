@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionManager } from '../../../../shared/application/persistence/transaction-manager.js';
+import { AdminRoleProvisioner } from '../../../roles/application/services/admin-role-provisioner.js';
 import { SigningKeyProvisioner } from '../../../signing-keys/application/services/signing-key-provisioner.js';
 import {
   RegisterUserInput,
   UserRegistrar,
 } from '../../../users/application/services/user-registrar.js';
 import type { User } from '../../../users/domain/entities/user.entity.js';
+import { UserRepository } from '../../../users/domain/repositories/user.repository.js';
 import {
   MASTER_REALM_NAME,
   Realm,
@@ -19,6 +21,7 @@ export type InitialAdmin = Required<RegisterUserInput>;
 
 export type BootstrapMasterRealmResult =
   | { status: 'created'; realm: Realm; admin: User }
+  | { status: 'admin_recovered'; admin: User }
   | { status: 'already_exists' };
 
 @Injectable()
@@ -26,7 +29,9 @@ export class BootstrapMasterRealmUseCase {
   constructor(
     private readonly realms: RealmRepository,
     private readonly userRegistrar: UserRegistrar,
+    private readonly users: UserRepository,
     private readonly signingKeyProvisioner: SigningKeyProvisioner,
+    private readonly adminRoles: AdminRoleProvisioner,
     private readonly transactions: TransactionManager,
   ) {}
 
@@ -35,7 +40,7 @@ export class BootstrapMasterRealmUseCase {
   ): Promise<BootstrapMasterRealmResult> {
     const master = await this.realms.findByName(MASTER_REALM_NAME);
     if (master) {
-      return this.alreadyExists(master);
+      return this.alreadyExists(master, initialAdmin);
     }
     if (!initialAdmin) {
       throw new MasterAdminNotConfiguredError();
@@ -49,6 +54,7 @@ export class BootstrapMasterRealmUseCase {
           loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
         });
         const admin = await this.userRegistrar.register(realm, initialAdmin);
+        await this.adminRoles.grantAdmin(realm.id, admin.id);
         await this.signingKeyProvisioner.ensureActive(realm.id);
         return { status: 'created', realm, admin };
       });
@@ -56,6 +62,7 @@ export class BootstrapMasterRealmUseCase {
       if (error instanceof RealmAlreadyExistsError) {
         return this.alreadyExists(
           await this.realms.findByName(MASTER_REALM_NAME),
+          initialAdmin,
         );
       }
       throw error;
@@ -64,10 +71,33 @@ export class BootstrapMasterRealmUseCase {
 
   private async alreadyExists(
     master: Realm | null,
+    initialAdmin: InitialAdmin | null,
   ): Promise<BootstrapMasterRealmResult> {
-    if (master) {
-      await this.signingKeyProvisioner.ensureActive(master.id);
+    if (!master) {
+      return { status: 'already_exists' };
     }
-    return { status: 'already_exists' };
+    await this.signingKeyProvisioner.ensureActive(master.id);
+    const recovered = await this.recoverAdmin(master, initialAdmin);
+    return recovered
+      ? { status: 'admin_recovered', admin: recovered }
+      : { status: 'already_exists' };
+  }
+
+  private async recoverAdmin(
+    master: Realm,
+    initialAdmin: InitialAdmin | null,
+  ): Promise<User | null> {
+    if (!initialAdmin || (await this.adminRoles.hasAnyAdmin(master.id))) {
+      return null;
+    }
+    const user = await this.users.findByUsername(
+      master.id,
+      initialAdmin.username,
+    );
+    if (!user) {
+      return null;
+    }
+    await this.adminRoles.grantAdmin(master.id, user.id);
+    return user;
   }
 }

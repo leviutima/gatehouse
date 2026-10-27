@@ -33,6 +33,14 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve(name === this.shop.name ? this.shop : null);
   }
 
+  list(): Promise<Realm[]> {
+    return Promise.resolve([this.shop]);
+  }
+
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(): Promise<Realm> {
     return Promise.reject(new Error('not used'));
   }

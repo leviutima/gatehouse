@@ -6,6 +6,7 @@ import { RealmAlreadyExistsError } from '../../domain/errors/realm-already-exist
 import {
   CreateRealmData,
   RealmRepository,
+  UpdateRealmData,
 } from '../../domain/repositories/realm.repository.js';
 import { RealmMapper } from '../mappers/realm.mapper.js';
 
@@ -20,6 +21,13 @@ export class PrismaRealmRepository extends RealmRepository {
     return row ? RealmMapper.toDomain(row) : null;
   }
 
+  async list(): Promise<Realm[]> {
+    const rows = await this.prisma.db.realm.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return rows.map((row) => RealmMapper.toDomain(row));
+  }
+
   async create(data: CreateRealmData): Promise<Realm> {
     try {
       const row = await this.prisma.db.realm.create({ data });
@@ -30,5 +38,10 @@ export class PrismaRealmRepository extends RealmRepository {
       }
       throw error;
     }
+  }
+
+  async update(id: string, data: UpdateRealmData): Promise<Realm> {
+    const row = await this.prisma.db.realm.update({ where: { id }, data });
+    return RealmMapper.toDomain(row);
   }
 }

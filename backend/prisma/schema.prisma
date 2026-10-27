@@ -45,6 +45,7 @@ model Realm {
   users       User[]
   clients     Client[]
   signingKeys SigningKey[]
+  roles       Role[]
 
   @@map("realms")
 }
@@ -60,10 +61,12 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  realm Realm @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  realm Realm      @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  roles UserRole[]
 
   @@unique([realmId, username])
   @@unique([realmId, email])
+  @@unique([realmId, id])
   @@map("users")
 }
 
@@ -100,4 +103,34 @@ model SigningKey {
 
   @@index([realmId, status])
   @@map("signing_keys")
+}
+
+model Role {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  realmId     String   @map("realm_id") @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  realm Realm      @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  users UserRole[]
+
+  @@unique([realmId, name])
+  @@unique([realmId, id])
+  @@map("roles")
+}
+
+model UserRole {
+  realmId   String   @map("realm_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [realmId, userId], references: [realmId, id], onDelete: Cascade)
+  role Role @relation(fields: [realmId, roleId], references: [realmId, id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([realmId, roleId])
+  @@map("user_roles")
 }

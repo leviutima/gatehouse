@@ -12,6 +12,13 @@ import {
   GeneratedKeyPair,
   KeyPairGenerator,
 } from '../../../signing-keys/application/key-pair-generator.js';
+import { AdminRoleProvisioner } from '../../../roles/application/services/admin-role-provisioner.js';
+import { Role } from '../../../roles/domain/entities/role.entity.js';
+import {
+  CreateRoleData,
+  RoleAssignment,
+  RoleRepository,
+} from '../../../roles/domain/repositories/role.repository.js';
 import { SigningKeyProvisioner } from '../../../signing-keys/application/services/signing-key-provisioner.js';
 import { SigningKey } from '../../../signing-keys/domain/entities/signing-key.entity.js';
 import {
@@ -38,6 +45,14 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve(this.realms.find((r) => r.name === name) ?? null);
   }
 
+  list(): Promise<Realm[]> {
+    return Promise.resolve([...this.realms]);
+  }
+
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(data: CreateRealmData): Promise<Realm> {
     if (this.failCreateWith) {
       return Promise.reject(this.failCreateWith);
@@ -59,6 +74,28 @@ class InMemoryRealmRepository extends RealmRepository {
 class InMemoryUserRepository extends UserRepository {
   readonly users: User[] = [];
 
+  findByUsername(realmId: string, username: string): Promise<User | null> {
+    return Promise.resolve(
+      this.users.find(
+        (user) =>
+          user.realmId === realmId &&
+          user.username.toLowerCase() === username.toLowerCase(),
+      ) ?? null,
+    );
+  }
+
+  findById(): Promise<User | null> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  list(): Promise<User[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  update(): Promise<User> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(data: CreateUserData): Promise<User> {
     const user = new User({
       id: `user-${this.users.length + 1}`,
@@ -69,6 +106,72 @@ class InMemoryUserRepository extends UserRepository {
     });
     this.users.push(user);
     return Promise.resolve(user);
+  }
+}
+
+class InMemoryRoleRepository extends RoleRepository {
+  readonly roles: Role[] = [];
+  readonly assignments: RoleAssignment[] = [];
+  readonly assignedInsideTransaction: boolean[] = [];
+
+  constructor(private readonly transactions: FakeTransactionManager) {
+    super();
+  }
+
+  findByName(realmId: string, name: string): Promise<Role | null> {
+    return Promise.resolve(
+      this.roles.find(
+        (role) => role.realmId === realmId && role.name === name,
+      ) ?? null,
+    );
+  }
+
+  create(data: CreateRoleData): Promise<Role> {
+    const role = new Role({
+      id: `role-${this.roles.length + 1}`,
+      createdAt: now,
+      updatedAt: now,
+      ...data,
+    });
+    this.roles.push(role);
+    return Promise.resolve(role);
+  }
+
+  assign(assignment: RoleAssignment): Promise<void> {
+    this.assignedInsideTransaction.push(this.transactions.active);
+    this.assignments.push(assignment);
+    return Promise.resolve();
+  }
+
+  list(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  listForUser(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  unassign(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  countMembers(roleId: string): Promise<number> {
+    return Promise.resolve(
+      this.assignments.filter((assignment) => assignment.roleId === roleId)
+        .length,
+    );
+  }
+
+  countEnabledMembers(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
+  isUserInRole(): Promise<boolean> {
+    return Promise.resolve(false);
   }
 }
 
@@ -163,6 +266,7 @@ describe('BootstrapMasterRealmUseCase', () => {
   let realms: InMemoryRealmRepository;
   let users: InMemoryUserRepository;
   let keys: InMemorySigningKeyRepository;
+  let roles: InMemoryRoleRepository;
   let hasher: FakePasswordHasher;
   let transactions: FakeTransactionManager;
   let useCase: BootstrapMasterRealmUseCase;
@@ -180,14 +284,17 @@ describe('BootstrapMasterRealmUseCase', () => {
     hasher = new FakePasswordHasher();
     transactions = new FakeTransactionManager();
     keys = new InMemorySigningKeyRepository(transactions);
+    roles = new InMemoryRoleRepository(transactions);
     useCase = new BootstrapMasterRealmUseCase(
       realms,
       new UserRegistrar(users, hasher),
+      users,
       new SigningKeyProvisioner(
         keys,
         new FakeKeyPairGenerator(),
         new FakeKeyEncryptor(),
       ),
+      new AdminRoleProvisioner(roles),
       transactions,
     );
   });
@@ -215,6 +322,22 @@ describe('BootstrapMasterRealmUseCase', () => {
       status: 'ACTIVE',
     });
     expect(keys.createdInsideTransaction).toEqual([true]);
+  });
+
+  it('makes the initial admin an admin of the master realm inside the transaction', async () => {
+    await useCase.execute(initialAdmin);
+
+    expect(roles.roles).toEqual([
+      expect.objectContaining({ realmId: realms.realms[0].id, name: 'admin' }),
+    ]);
+    expect(roles.assignments).toEqual([
+      {
+        realmId: realms.realms[0].id,
+        userId: users.users[0].id,
+        roleId: roles.roles[0].id,
+      },
+    ]);
+    expect(roles.assignedInsideTransaction).toEqual([true]);
   });
 
   it('stores only the password hash, never the password', async () => {
@@ -258,6 +381,56 @@ describe('BootstrapMasterRealmUseCase', () => {
     expect(keys.keys).toHaveLength(1);
     expect(keys.keys[0].realmId).toBe(master.id);
     expect(transactions.runs).not.toHaveBeenCalled();
+  });
+
+  it('grants the admin role to the configured admin when master has no admin', async () => {
+    const master = await createMaster();
+    const existing = await users.create({
+      realmId: master.id,
+      username: 'admin',
+      email: 'admin@example.com',
+      emailVerified: false,
+      passwordHash: 'hash',
+    });
+
+    const result = await useCase.execute({
+      ...initialAdmin,
+      username: 'ADMIN',
+    });
+
+    expect(result).toEqual({ status: 'admin_recovered', admin: existing });
+    expect(roles.assignments).toEqual([
+      { realmId: master.id, userId: existing.id, roleId: roles.roles[0].id },
+    ]);
+  });
+
+  it('leaves the admins alone when master already has one', async () => {
+    const master = await createMaster();
+    await users.create({
+      realmId: master.id,
+      username: 'admin',
+      email: 'admin@example.com',
+      emailVerified: false,
+      passwordHash: 'hash',
+    });
+    const adminRoles = new AdminRoleProvisioner(roles);
+    await adminRoles.grantAdmin(master.id, 'another-admin');
+
+    const result = await useCase.execute(initialAdmin);
+
+    expect(result).toEqual({ status: 'already_exists' });
+    expect(roles.assignments.map(({ userId }) => userId)).toEqual([
+      'another-admin',
+    ]);
+  });
+
+  it('does not recover an admin the master realm does not have as a user', async () => {
+    await createMaster();
+
+    await expect(useCase.execute(initialAdmin)).resolves.toEqual({
+      status: 'already_exists',
+    });
+    expect(roles.assignments).toHaveLength(0);
   });
 
   it('ignores a missing admin once the master realm exists', async () => {

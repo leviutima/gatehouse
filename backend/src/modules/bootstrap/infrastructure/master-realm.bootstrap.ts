@@ -22,6 +22,11 @@ export class MasterRealmBootstrap implements OnApplicationBootstrap {
         `Created master realm with initial admin "${result.admin.username}"`,
       );
     }
+    if (result.status === 'admin_recovered') {
+      this.logger.warn(
+        `Master realm had no admin; granted the admin role to "${result.admin.username}"`,
+      );
+    }
   }
 
   private initialAdmin(): InitialAdmin | null {
