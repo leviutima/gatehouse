@@ -5,14 +5,27 @@ import { RealmIssuer } from '../application/realm-issuer.js';
 
 @Injectable()
 export class ConfigRealmIssuer extends RealmIssuer {
-  private readonly baseUrl: string;
+  private readonly realmsUrl: string;
 
   constructor(config: ConfigService<Env, true>) {
     super();
-    this.baseUrl = config.get('GATEHOUSE_ISSUER', { infer: true });
+    this.realmsUrl = `${config.get('GATEHOUSE_ISSUER', { infer: true })}/realms/`;
   }
 
   forRealm(realmName: string): string {
-    return `${this.baseUrl}/realms/${encodeURIComponent(realmName)}`;
+    return `${this.realmsUrl}${encodeURIComponent(realmName)}`;
+  }
+
+  realmNameOf(issuer: string): string | null {
+    if (!issuer.startsWith(this.realmsUrl)) {
+      return null;
+    }
+    let realmName: string;
+    try {
+      realmName = decodeURIComponent(issuer.slice(this.realmsUrl.length));
+    } catch {
+      return null;
+    }
+    return realmName && this.forRealm(realmName) === issuer ? realmName : null;
   }
 }
