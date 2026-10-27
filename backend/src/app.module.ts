@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { BootstrapModule } from './modules/bootstrap/bootstrap.module.js';
 import { ClientsModule } from './modules/clients/clients.module.js';
 import { OidcModule } from './modules/oidc/oidc.module.js';
+import { RolesModule } from './modules/roles/roles.module.js';
 import { SigningKeysModule } from './modules/signing-keys/signing-keys.module.js';
 import { CryptoModule } from './shared/infrastructure/crypto/crypto.module.js';
 import { validateEnv } from './shared/infrastructure/config/env.schema.js';
@@ -26,6 +27,7 @@ import { AccessTokenGuard } from './shared/presentation/guards/access-token.guar
     ClientsModule,
     SigningKeysModule,
     OidcModule,
+    RolesModule,
   ],
   controllers: [],
   providers: [
