@@ -25,6 +25,23 @@ export class AdminAuthorizer {
     return this.isAdminOfOwnRealm(principal);
   }
 
+  async isLastEnabledAdmin(
+    realmName: string,
+    userId: string,
+  ): Promise<boolean> {
+    const isAdmin = await this.roles.isUserInRole(
+      realmName,
+      userId,
+      ADMIN_ROLE_NAME,
+    );
+    if (!isAdmin) {
+      return false;
+    }
+    return (
+      (await this.roles.countEnabledMembers(realmName, ADMIN_ROLE_NAME)) === 1
+    );
+  }
+
   private isAdminOfOwnRealm(principal: Principal): Promise<boolean> {
     return this.roles.isUserInRole(
       principal.realm,

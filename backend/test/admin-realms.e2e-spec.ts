@@ -263,4 +263,71 @@ describe('Admin realms API (e2e)', () => {
       }
     });
   });
+
+  describe('PATCH /admin/realms/:realm', () => {
+    const patch = (realmName: string, token: string, body: object) =>
+      http()
+        .patch(`/admin/realms/${realmName}`)
+        .auth(token, { type: 'bearer' })
+        .send(body);
+
+    it('lets a realm admin change the settings of its realm', async () => {
+      const { body } = await patch(shop, tokens.shopAdmin, {
+        displayName: ' Shop Europe ',
+        passwordMinLength: 16,
+        accessTokenLifespan: 900,
+      }).expect(200);
+
+      expect(body).toMatchObject({
+        name: shop,
+        displayName: 'Shop Europe',
+        passwordMinLength: 16,
+        accessTokenLifespan: 900,
+        enabled: true,
+      });
+    });
+
+    it('refuses to rename a realm', () => {
+      return patch(shop, tokens.global, { name: 'renamed' })
+        .expect(400)
+        .expect(({ body }) => expect(body.error).toBe('validation_failed'));
+    });
+
+    it('rejects settings that break the realm rules', () => {
+      return patch(shop, tokens.shopAdmin, { accessTokenLifespan: 5 })
+        .expect(422)
+        .expect(({ body }) =>
+          expect(body.error).toBe('invalid_realm_configuration'),
+        );
+    });
+
+    it('does not let a realm admin disable its own realm', () => {
+      return patch(shop, tokens.shopAdmin, { enabled: false })
+        .expect(403)
+        .expect(({ body }) =>
+          expect(body.error).toBe('realm_status_requires_global_admin'),
+        );
+    });
+
+    it('never disables master', () => {
+      return patch('master', tokens.global, { enabled: false })
+        .expect(422)
+        .expect(({ body }) =>
+          expect(body.error).toBe('master_realm_cannot_be_disabled'),
+        );
+    });
+
+    it('lets a global admin disable a realm, which locks its tokens out', async () => {
+      await patch(shop, tokens.global, { enabled: false }).expect(200);
+
+      try {
+        await http()
+          .get(`/admin/realms/${shop}`)
+          .auth(tokens.shopAdmin, { type: 'bearer' })
+          .expect(401);
+      } finally {
+        await patch(shop, tokens.global, { enabled: true }).expect(200);
+      }
+    });
+  });
 });

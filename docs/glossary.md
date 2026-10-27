@@ -229,6 +229,17 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 | **`weak_password`** | 422 | A senha não atende à política do realm. |
 | **`realm_already_exists`** | 409 | Já existe um realm com esse nome. |
 | **`realm_not_found`** | 404 | O realm não existe (só um admin global chega a ver essa resposta). |
+| **`realm_status_requires_global_admin`** | 403 | Um admin de realm tentou habilitar ou desabilitar o próprio realm; só o admin global pode. |
+| **`master_realm_cannot_be_disabled`** | 422 | Tentativa de desabilitar o `master`, que deixaria o Gatehouse sem administração. |
+| **`user_not_found`** | 404 | O usuário não existe **neste** realm (um id de outro realm também dá 404). |
+| **`user_already_exists`** | 409 | Já existe um usuário com esse username ou e-mail no realm. |
+| **`username_required`** | 422 | O realm não usa o e-mail como username, e nenhum username foi enviado. |
+| **`invalid_username`** | 422 | Username fora do padrão: 3 a 64 letras, números, `.` `_` `-`. |
+| **`role_not_found`** | 404 | O papel não existe neste realm. |
+| **`role_already_exists`** | 409 | Já existe um papel com esse nome no realm. |
+| **`invalid_role_name`** | 422 | Nome de papel fora do padrão: letras, números, `.` `_` `:` `-`, até 64 caracteres. |
+| **`reserved_role`** | 422 | Tentativa de apagar o papel `admin`, que todo realm precisa ter. |
+| **`last_realm_admin`** | 409 | Desabilitar o usuário ou tirar o papel `admin` dele deixaria o realm sem nenhum admin habilitado. |
 
 ---
 

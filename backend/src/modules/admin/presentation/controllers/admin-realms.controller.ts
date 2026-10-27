@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import {
   ApiBody,
   ApiConflictResponse,
@@ -11,12 +11,15 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { z } from 'zod';
+import type { Principal } from '../../../../shared/application/auth/principal.js';
+import { CurrentUser } from '../../../../shared/presentation/decorators/current-user.decorator.js';
 import { errorResponseSchema } from '../../../../shared/presentation/openapi/error-response.schema.js';
 import { openApiSchema } from '../../../../shared/presentation/openapi/openapi-schema.js';
 import { ZodValidationPipe } from '../../../../shared/presentation/pipes/zod-validation.pipe.js';
 import { GetRealmUseCase } from '../../../realms/application/use-cases/get-realm.use-case.js';
 import { ListRealmsUseCase } from '../../../realms/application/use-cases/list-realms.use-case.js';
 import { CreateRealmUseCase } from '../../application/use-cases/create-realm.use-case.js';
+import { UpdateRealmUseCase } from '../../application/use-cases/update-realm.use-case.js';
 import {
   MasterAdmin,
   RealmAdmin,
@@ -28,6 +31,8 @@ import {
   realmResponseSchema,
   toRealmResponse,
 } from '../schemas/realm.response.js';
+import type { UpdateRealmRequest } from '../schemas/update-realm.schema.js';
+import { updateRealmSchema } from '../schemas/update-realm.schema.js';
 
 @ApiTags('Admin: Realms')
 @Controller('admin/realms')
@@ -36,6 +41,7 @@ export class AdminRealmsController {
     private readonly createRealm: CreateRealmUseCase,
     private readonly listRealms: ListRealmsUseCase,
     private readonly getRealm: GetRealmUseCase,
+    private readonly updateRealm: UpdateRealmUseCase,
   ) {}
 
   @Post()
@@ -75,5 +81,33 @@ export class AdminRealmsController {
   @ApiNotFoundResponse({ schema: openApiSchema(errorResponseSchema) })
   async get(@Param('realm') realm: string): Promise<RealmResponse> {
     return toRealmResponse(await this.getRealm.execute(realm));
+  }
+
+  @Patch(':realm')
+  @RealmAdmin()
+  @ApiOperation({
+    summary: 'Update a realm',
+    description:
+      'Only an admin of the master realm can enable or disable a realm, and master can never be disabled.',
+  })
+  @ApiParam({ name: 'realm', example: 'shop' })
+  @ApiBody({ schema: openApiSchema(updateRealmSchema, 'input') })
+  @ApiOkResponse({ schema: openApiSchema(realmResponseSchema) })
+  @ApiNotFoundResponse({ schema: openApiSchema(errorResponseSchema) })
+  @ApiUnprocessableEntityResponse({
+    schema: openApiSchema(errorResponseSchema),
+  })
+  async update(
+    @Param('realm') realm: string,
+    @CurrentUser() actor: Principal,
+    @Body(new ZodValidationPipe(updateRealmSchema)) body: UpdateRealmRequest,
+  ): Promise<RealmResponse> {
+    return toRealmResponse(
+      await this.updateRealm.execute({
+        actor,
+        realmName: realm,
+        changes: body,
+      }),
+    );
   }
 }

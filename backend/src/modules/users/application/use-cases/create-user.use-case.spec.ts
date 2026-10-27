@@ -46,6 +46,10 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve([...this.realms]);
   }
 
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(): Promise<Realm> {
     return Promise.reject(new Error('not used'));
   }
@@ -62,6 +66,18 @@ class InMemoryUserRepository extends UserRepository {
           user.username.toLowerCase() === username.toLowerCase(),
       ) ?? null,
     );
+  }
+
+  findById(): Promise<User | null> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  list(): Promise<User[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  update(): Promise<User> {
+    return Promise.reject(new Error('not used'));
   }
 
   create(data: CreateUserData): Promise<User> {

@@ -22,8 +22,33 @@ class FakeRoleRepository extends RoleRepository {
     return Promise.reject(new Error('not used'));
   }
 
+  list(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  listForUser(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  unassign(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
   countMembers(): Promise<number> {
     return Promise.resolve(0);
+  }
+
+  countEnabledMembers(realmName: string, roleName: string): Promise<number> {
+    return Promise.resolve(
+      [...this.members].filter((member) => {
+        const [realm, , role] = member.split('/');
+        return realm === realmName && role === roleName;
+      }).length,
+    );
   }
 
   isUserInRole(
@@ -92,5 +117,26 @@ describe('AdminAuthorizer', () => {
     await expect(
       authorizer.canAdminister(principal('other', 'root'), 'shop'),
     ).resolves.toBe(false);
+  });
+});
+
+describe('AdminAuthorizer.isLastEnabledAdmin', () => {
+  it('is true only for the one remaining admin of the realm', async () => {
+    const roles = new FakeRoleRepository();
+    roles.members.add('shop/ana/admin');
+    const authorizer = new AdminAuthorizer(roles);
+
+    await expect(authorizer.isLastEnabledAdmin('shop', 'ana')).resolves.toBe(
+      true,
+    );
+    await expect(authorizer.isLastEnabledAdmin('shop', 'bob')).resolves.toBe(
+      false,
+    );
+
+    roles.members.add('shop/carla/admin');
+
+    await expect(authorizer.isLastEnabledAdmin('shop', 'ana')).resolves.toBe(
+      false,
+    );
   });
 });

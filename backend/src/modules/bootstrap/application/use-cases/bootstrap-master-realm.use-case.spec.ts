@@ -49,6 +49,10 @@ class InMemoryRealmRepository extends RealmRepository {
     return Promise.resolve([...this.realms]);
   }
 
+  update(): Promise<Realm> {
+    return Promise.reject(new Error('not used'));
+  }
+
   create(data: CreateRealmData): Promise<Realm> {
     if (this.failCreateWith) {
       return Promise.reject(this.failCreateWith);
@@ -78,6 +82,18 @@ class InMemoryUserRepository extends UserRepository {
           user.username.toLowerCase() === username.toLowerCase(),
       ) ?? null,
     );
+  }
+
+  findById(): Promise<User | null> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  list(): Promise<User[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  update(): Promise<User> {
+    return Promise.reject(new Error('not used'));
   }
 
   create(data: CreateUserData): Promise<User> {
@@ -127,11 +143,31 @@ class InMemoryRoleRepository extends RoleRepository {
     return Promise.resolve();
   }
 
+  list(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  listForUser(): Promise<Role[]> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  delete(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  unassign(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
   countMembers(roleId: string): Promise<number> {
     return Promise.resolve(
       this.assignments.filter((assignment) => assignment.roleId === roleId)
         .length,
     );
+  }
+
+  countEnabledMembers(): Promise<number> {
+    return Promise.resolve(0);
   }
 
   isUserInRole(): Promise<boolean> {
