@@ -42,6 +42,14 @@ export class SessionManager {
     return { session, token };
   }
 
+  find(sessionId: string): Promise<Session | null> {
+    return this.sessions.findById(sessionId);
+  }
+
+  end(sessionId: string): Promise<void> {
+    return this.sessions.delete(sessionId);
+  }
+
   async resume(
     realm: Realm,
     token: string | undefined,

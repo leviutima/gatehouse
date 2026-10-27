@@ -14,6 +14,8 @@ export interface CreateAuthorizationCodeData {
 }
 
 export abstract class AuthorizationCodeRepository {
+  abstract findByCodeHash(codeHash: string): Promise<AuthorizationCode | null>;
+  abstract markConsumed(id: string, consumedAt: Date): Promise<boolean>;
   abstract create(
     data: CreateAuthorizationCodeData,
   ): Promise<AuthorizationCode>;

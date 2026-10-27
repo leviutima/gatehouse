@@ -13,6 +13,11 @@ export class PrismaSessionRepository extends SessionRepository {
     super();
   }
 
+  async findById(id: string): Promise<Session | null> {
+    const row = await this.prisma.db.session.findUnique({ where: { id } });
+    return row ? SessionMapper.toDomain(row) : null;
+  }
+
   async findByTokenHash(tokenHash: string): Promise<Session | null> {
     const row = await this.prisma.db.session.findUnique({
       where: { tokenHash },

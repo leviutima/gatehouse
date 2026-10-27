@@ -46,4 +46,12 @@ export class AuthorizationCode {
     this.consumedAt = props.consumedAt;
     this.createdAt = props.createdAt;
   }
+
+  get isConsumed(): boolean {
+    return this.consumedAt !== null;
+  }
+
+  isExpiredAt(now: Date): boolean {
+    return now.getTime() >= this.expiresAt.getTime();
+  }
 }

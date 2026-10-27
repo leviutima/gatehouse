@@ -10,6 +10,7 @@ export interface CreateSessionData {
 }
 
 export abstract class SessionRepository {
+  abstract findById(id: string): Promise<Session | null>;
   abstract findByTokenHash(tokenHash: string): Promise<Session | null>;
   abstract create(data: CreateSessionData): Promise<Session>;
   abstract touch(id: string, lastSeenAt: Date): Promise<void>;

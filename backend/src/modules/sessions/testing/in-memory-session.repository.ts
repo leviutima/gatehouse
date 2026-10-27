@@ -8,6 +8,12 @@ import {
 export class InMemorySessionRepository extends SessionRepository {
   readonly sessions: Session[] = [];
 
+  findById(id: string): Promise<Session | null> {
+    return Promise.resolve(
+      this.sessions.find((session) => session.id === id) ?? null,
+    );
+  }
+
   findByTokenHash(tokenHash: string): Promise<Session | null> {
     return Promise.resolve(
       this.sessions.find((session) => session.tokenHash === tokenHash) ?? null,
