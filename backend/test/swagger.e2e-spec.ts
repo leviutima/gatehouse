@@ -47,6 +47,24 @@ describe('Swagger (e2e)', () => {
     });
   });
 
+  it('documents the token endpoint as a form with basic client auth', async () => {
+    const { body } = await request(app.getHttpServer())
+      .get('/docs-json')
+      .expect(200);
+
+    const token = body.paths['/realms/{realm}/protocol/openid-connect/token'];
+    expect(Object.keys(token.post.requestBody.content)).toEqual([
+      'application/x-www-form-urlencoded',
+    ]);
+    expect(token.post.security).toEqual([{ client_secret_basic: [] }]);
+    expect(Object.keys(token.post.responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '404',
+    ]);
+  });
+
   it('serves the Swagger UI', async () => {
     const response = await request(app.getHttpServer())
       .get('/docs')
