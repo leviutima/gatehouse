@@ -94,14 +94,27 @@ describe('validateEnv', () => {
       ).toThrow(/GATEHOUSE_ADMIN_EMAIL[\s\S]*GATEHOUSE_ADMIN_PASSWORD/);
     });
 
-    it('rejects a password shorter than 12 characters', () => {
-      expect(() =>
+    it.each(['GATEHOUSE_ADMIN_USERNAME', 'GATEHOUSE_ADMIN_PASSWORD'])(
+      'rejects an empty %s',
+      (key) => {
+        expect(() => validateEnv({ ...required, ...admin, [key]: '' })).toThrow(
+          new RegExp(key),
+        );
+      },
+    );
+
+    it('leaves username format and password strength to the realm rules', () => {
+      expect(
         validateEnv({
           ...required,
           ...admin,
-          GATEHOUSE_ADMIN_PASSWORD: 'short-pass1',
+          GATEHOUSE_ADMIN_USERNAME: 'admin user',
+          GATEHOUSE_ADMIN_PASSWORD: 'short',
         }),
-      ).toThrow(/GATEHOUSE_ADMIN_PASSWORD/);
+      ).toMatchObject({
+        GATEHOUSE_ADMIN_USERNAME: 'admin user',
+        GATEHOUSE_ADMIN_PASSWORD: 'short',
+      });
     });
 
     it('rejects an invalid email', () => {
@@ -112,16 +125,6 @@ describe('validateEnv', () => {
           GATEHOUSE_ADMIN_EMAIL: 'not-an-email',
         }),
       ).toThrow(/GATEHOUSE_ADMIN_EMAIL/);
-    });
-
-    it('rejects a username with unsupported characters', () => {
-      expect(() =>
-        validateEnv({
-          ...required,
-          ...admin,
-          GATEHOUSE_ADMIN_USERNAME: 'admin user',
-        }),
-      ).toThrow(/GATEHOUSE_ADMIN_USERNAME/);
     });
 
     it('trims the username but never the password', () => {
