@@ -2,6 +2,7 @@ export type OAuthErrorCode =
   | 'invalid_request'
   | 'invalid_client'
   | 'invalid_grant'
+  | 'invalid_scope'
   | 'unauthorized_client'
   | 'unsupported_grant_type';
 
@@ -22,10 +23,16 @@ export class OAuthError extends Error {
     return new OAuthError('invalid_client', 'Client authentication failed');
   }
 
-  static invalidGrant(): OAuthError {
+  static invalidGrant(
+    description = 'The authorization code is invalid, expired or was already used',
+  ): OAuthError {
+    return new OAuthError('invalid_grant', description);
+  }
+
+  static invalidScope(): OAuthError {
     return new OAuthError(
-      'invalid_grant',
-      'The authorization code is invalid, expired or was already used',
+      'invalid_scope',
+      'The requested scope exceeds the scope originally granted',
     );
   }
 

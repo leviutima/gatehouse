@@ -12,15 +12,20 @@ import { AuthorizationCodeIssuer } from './application/services/authorization-co
 import { AuthorizationCompleter } from './application/services/authorization-completer.js';
 import { AuthorizationRequestValidator } from './application/services/authorization-request-validator.js';
 import { IdTokenIssuer } from './application/services/id-token-issuer.js';
+import { RefreshTokenIssuer } from './application/services/refresh-token-issuer.js';
+import { UserTokenIssuer } from './application/services/user-token-issuer.js';
 import { AuthorizeUseCase } from './application/use-cases/authorize.use-case.js';
 import { ExchangeAuthorizationCodeUseCase } from './application/use-cases/exchange-authorization-code.use-case.js';
 import { IssueClientCredentialsTokenUseCase } from './application/use-cases/issue-client-credentials-token.use-case.js';
+import { RefreshTokensUseCase } from './application/use-cases/refresh-tokens.use-case.js';
 import { SignInUseCase } from './application/use-cases/sign-in.use-case.js';
 import { AuthorizationCodeRepository } from './domain/repositories/authorization-code.repository.js';
+import { RefreshTokenRepository } from './domain/repositories/refresh-token.repository.js';
 import { ConfigRealmIssuer } from './infrastructure/config-realm-issuer.js';
 import { S256CodeChallengeVerifier } from './infrastructure/crypto/s256-code-challenge-verifier.js';
 import { RealmAccessTokenVerifier } from './infrastructure/realm-access-token-verifier.js';
 import { PrismaAuthorizationCodeRepository } from './infrastructure/repositories/prisma-authorization-code.repository.js';
+import { PrismaRefreshTokenRepository } from './infrastructure/repositories/prisma-refresh-token.repository.js';
 import { AuthorizationController } from './presentation/controllers/authorization.controller.js';
 import { JwksController } from './presentation/controllers/jwks.controller.js';
 import { TokenController } from './presentation/controllers/token.controller.js';
@@ -44,6 +49,7 @@ import { LoginTheme } from './presentation/login/login-theme.js';
       provide: AuthorizationCodeRepository,
       useClass: PrismaAuthorizationCodeRepository,
     },
+    { provide: RefreshTokenRepository, useClass: PrismaRefreshTokenRepository },
     { provide: LoginTheme, useClass: DefaultLoginTheme },
     { provide: CodeChallengeVerifier, useClass: S256CodeChallengeVerifier },
     AccessTokenIssuer,
@@ -55,6 +61,9 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     SignInUseCase,
     IdTokenIssuer,
     ExchangeAuthorizationCodeUseCase,
+    RefreshTokenIssuer,
+    UserTokenIssuer,
+    RefreshTokensUseCase,
     LoginCookies,
   ],
   exports: [TokenVerifier],

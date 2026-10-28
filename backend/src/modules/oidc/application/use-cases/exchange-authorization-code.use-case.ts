@@ -11,11 +11,12 @@ import { RealmRepository } from '../../../realms/domain/repositories/realm.repos
 import { SessionManager } from '../../../sessions/application/services/session-manager.js';
 import { UserRepository } from '../../../users/domain/repositories/user.repository.js';
 import { AuthorizationCodeRepository } from '../../domain/repositories/authorization-code.repository.js';
-import { OPENID_SCOPE } from '../../domain/scope.js';
 import { CodeChallengeVerifier } from '../code-challenge-verifier.js';
 import { OAuthError } from '../errors/oauth.error.js';
-import { AccessTokenIssuer } from '../services/access-token-issuer.js';
-import { IdTokenIssuer } from '../services/id-token-issuer.js';
+import {
+  IssuedUserTokens,
+  UserTokenIssuer,
+} from '../services/user-token-issuer.js';
 
 export interface AuthorizationCodeTokenInput {
   realmName: string;
@@ -23,13 +24,6 @@ export interface AuthorizationCodeTokenInput {
   code: string | undefined;
   redirectUri: string | undefined;
   codeVerifier: string | undefined;
-}
-
-export interface IssuedUserTokens {
-  accessToken: string;
-  idToken: string | null;
-  expiresIn: number;
-  scope: string;
 }
 
 @Injectable()
@@ -42,8 +36,7 @@ export class ExchangeAuthorizationCodeUseCase {
     private readonly codeChallengeVerifier: CodeChallengeVerifier,
     private readonly users: UserRepository,
     private readonly sessions: SessionManager,
-    private readonly accessTokenIssuer: AccessTokenIssuer,
-    private readonly idTokenIssuer: IdTokenIssuer,
+    private readonly userTokenIssuer: UserTokenIssuer,
     private readonly clock: Clock,
   ) {}
 
@@ -104,25 +97,13 @@ export class ExchangeAuthorizationCodeUseCase {
       throw OAuthError.invalidGrant();
     }
 
-    const scopes = stored.scope.split(' ').filter(Boolean);
-    const { token, expiresIn } = await this.accessTokenIssuer.issue({
+    return this.userTokenIssuer.issue({
       realm,
-      subject: user.id,
-      clientId: client.clientId,
+      client,
+      user,
+      session,
       scope: stored.scope,
-      sessionId: session.id,
+      nonce: stored.nonce,
     });
-    const idToken = scopes.includes(OPENID_SCOPE)
-      ? await this.idTokenIssuer.issue({
-          realm,
-          client,
-          user,
-          session,
-          scopes,
-          nonce: stored.nonce,
-        })
-      : null;
-
-    return { accessToken: token, idToken, expiresIn, scope: stored.scope };
   }
 }

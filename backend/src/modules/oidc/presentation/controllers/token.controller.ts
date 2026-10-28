@@ -26,6 +26,8 @@ import { openApiSchema } from '../../../../shared/presentation/openapi/openapi-s
 import { OAuthError } from '../../application/errors/oauth.error.js';
 import { ExchangeAuthorizationCodeUseCase } from '../../application/use-cases/exchange-authorization-code.use-case.js';
 import { IssueClientCredentialsTokenUseCase } from '../../application/use-cases/issue-client-credentials-token.use-case.js';
+import { RefreshTokensUseCase } from '../../application/use-cases/refresh-tokens.use-case.js';
+import type { IssuedUserTokens } from '../../application/services/user-token-issuer.js';
 import { OAuthErrorFilter } from '../filters/oauth-error.filter.js';
 import {
   assertFormEncoded,
@@ -41,6 +43,7 @@ import {
 
 const CLIENT_CREDENTIALS = 'client_credentials';
 const AUTHORIZATION_CODE = 'authorization_code';
+const REFRESH_TOKEN = 'refresh_token';
 
 @ApiTags('OpenID Connect')
 @Public()
@@ -50,6 +53,7 @@ export class TokenController {
   constructor(
     private readonly issueClientCredentialsToken: IssueClientCredentialsTokenUseCase,
     private readonly exchangeAuthorizationCode: ExchangeAuthorizationCodeUseCase,
+    private readonly refreshTokens: RefreshTokensUseCase,
   ) {}
 
   @Post('token')
@@ -59,7 +63,7 @@ export class TokenController {
   @ApiOperation({
     summary: 'Token endpoint',
     description:
-      'Issues tokens for the client_credentials and authorization_code grants. Confidential clients authenticate with client_secret_basic or client_secret_post; public clients send only client_id and prove the code with PKCE.',
+      'Issues tokens for the client_credentials, authorization_code and refresh_token grants. Confidential clients authenticate with client_secret_basic or client_secret_post; public clients send only client_id and prove the code with PKCE.',
   })
   @ApiParam({ name: 'realm', example: 'master' })
   @ApiConsumes('application/x-www-form-urlencoded')
@@ -100,15 +104,32 @@ export class TokenController {
         redirectUri: request.redirect_uri,
         codeVerifier: request.code_verifier,
       });
-      return {
-        access_token: tokens.accessToken,
-        token_type: 'Bearer',
-        expires_in: tokens.expiresIn,
-        ...(tokens.idToken === null ? {} : { id_token: tokens.idToken }),
-        scope: tokens.scope,
-      };
+      return toUserTokenResponse(tokens);
+    }
+
+    if (request.grant_type === REFRESH_TOKEN) {
+      const tokens = await this.refreshTokens.execute({
+        realmName: realm,
+        credentials: credentials(),
+        refreshToken: request.refresh_token,
+        scope: request.scope,
+      });
+      return toUserTokenResponse(tokens);
     }
 
     throw OAuthError.unsupportedGrantType(request.grant_type);
   }
+}
+
+function toUserTokenResponse(tokens: IssuedUserTokens): TokenResponse {
+  return {
+    access_token: tokens.accessToken,
+    token_type: 'Bearer',
+    expires_in: tokens.expiresIn,
+    ...(tokens.idToken === null ? {} : { id_token: tokens.idToken }),
+    ...(tokens.refreshToken === null
+      ? {}
+      : { refresh_token: tokens.refreshToken }),
+    scope: tokens.scope,
+  };
 }
