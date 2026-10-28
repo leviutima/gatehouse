@@ -11,6 +11,7 @@ Siglas e termos que aparecem no código, nos tokens e nas respostas HTTP do Gate
 - [Endpoint de token](#endpoint-de-token)
 - [Autenticação nas requisições HTTP](#autenticação-nas-requisições-http)
 - [Login no navegador](#login-no-navegador)
+- [Tokens do usuário, UserInfo, logout e discovery](#tokens-do-usuário-userinfo-logout-e-discovery)
 - [Códigos de erro](#códigos-de-erro)
 - [Criptografia](#criptografia)
 - [Banco de dados e infraestrutura](#banco-de-dados-e-infraestrutura)
@@ -224,6 +225,31 @@ O header `Cache-Control: public, max-age=300` desse endpoint permite que os serv
 
 ---
 
+## Tokens do usuário, UserInfo, logout e discovery
+
+| Termo | O que é |
+|---|---|
+| **PKCE** | Proof Key for Code Exchange (RFC 7636), pronuncia-se "pixy". O app gera um segredo aleatório (`code_verifier`), envia só o SHA-256 dele (`code_challenge`) no `/auth` e o segredo original na troca do código no `/token`. Quem roubar o código não consegue trocá-lo. Obrigatório para todos os clients, só com `S256`. |
+| **Client público na troca do código** | Um client público manda só o `client_id` no `/token`, sem secret: quem prova a posse do código é o PKCE. Se ele mandar um secret, é `invalid_client`. |
+| **`id_token`** | O token do OIDC que diz quem fez login, emitido quando o escopo tem `openid`. Tem `typ: JWT` (diferente do `at+jwt` do access token, por isso nunca serve como access token), `aud` e `azp` iguais ao `client_id`, `auth_time`, `sid`, `nonce` e as claims dos escopos `profile` e `email`. |
+| **`azp`** | Authorized party: o client para quem o `id_token` foi emitido. |
+| **`auth_time`** | Quando o usuário digitou a senha pela última vez nesta sessão, em Unix time. |
+| **`sid`** | Session ID: o id da sessão SSO, presente no access token e no `id_token`. É por ele que o logout encontra a sessão. |
+| **Refresh token** | Valor aleatório (só o hash é guardado) que troca por novos tokens sem novo login. Só é emitido para clients com o grant `refresh_token`, vence junto com a sessão e some quando a sessão termina. |
+| **Rotação de refresh token** | Cada uso devolve um refresh token **novo** e invalida o anterior. |
+| **Família de refresh tokens** | Todos os refresh tokens nascidos do mesmo login. Se um token já trocado for usado de novo, é sinal de roubo: a família inteira é revogada e a sessão é encerrada. |
+| **Redução de escopo no refresh** | O refresh pode pedir um `scope` menor: o access token novo vem com o escopo menor, mas o refresh token novo mantém o escopo original (RFC 6749 §6). Pedir escopo maior é `invalid_scope`. |
+| **`scope`** | Lista de permissões concedidas, separadas por espaço (`openid profile email`). Vai no access token e chega ao `Principal` como `scopes`. |
+| **UserInfo** (`/userinfo`) | Endpoint que devolve as claims do usuário dono do access token, conforme os escopos. Exige o escopo `openid` e aceita `GET` e `POST`. |
+| **`insufficient_scope`** | Erro Bearer (403) de um token válido que não tem o escopo exigido, como um token sem `openid` no `/userinfo`. |
+| **RP-Initiated Logout** | O app (Relying Party) manda o navegador ao `/logout` para encerrar a sessão no Gatehouse. |
+| **`id_token_hint`** | O `id_token` que o app recebeu, enviado no logout para provar de qual client e sessão é o pedido. É aceito mesmo expirado, mas a assinatura e o emissor são conferidos. Sem ele, o Gatehouse pede confirmação ao usuário. |
+| **`post_logout_redirect_uri`** | Para onde o navegador volta depois do logout. Precisa estar **exatamente** na lista `postLogoutRedirectUris` do client; senão aparece uma página de erro e não há redirect. |
+| **Discovery** (`/.well-known/openid-configuration`) | Documento público de cada realm com os endpoints, grants, escopos, algoritmos e métodos de PKCE suportados. As bibliotecas OIDC se configuram sozinhas a partir dele. |
+| **Revogação** | Invalidar antes do `exp`. Logout, reuso detectado ou usuário desabilitado derrubam a sessão e os refresh tokens na hora; um access token já emitido continua válido até expirar (5 min por padrão). |
+
+---
+
 ## Códigos de erro
 
 ### Do OAuth (endpoint `/token`)
@@ -241,7 +267,8 @@ Respondem no formato `{ "error": "...", "error_description": "..." }` da RFC 674
 
 | Código | HTTP | Quando acontece |
 |---|---|---|
-| **`invalid_token`** | 401 | O token está expirado, malformado, assinado por uma chave desconhecida, foi alterado ou pertence a um realm desabilitado. |
+| **`invalid_token`** | 401 | O token está expirado, malformado, assinado por uma chave desconhecida, foi alterado ou pertence a um realm desabilitado. No `/userinfo`, também quando o token é de outro realm ou o usuário foi desabilitado. |
+| **`insufficient_scope`** | 403 | O token é válido, mas não tem o escopo exigido. |
 
 ### Da Admin API
 
@@ -270,6 +297,7 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 | **`client_already_exists`** | 409 | Já existe um client com esse `client_id` no realm. |
 | **`invalid_client_configuration`** | 422 | A configuração quebra uma regra do client: `client_id` ou nome fora do padrão, client público com `client_credentials`, `authorization_code` sem redirect URI, redirect URI inválida etc. |
 | **`public_client_has_no_secret`** | 422 | Pedido de secret novo para um client público, que não tem secret. |
+| **`invalid_grant`** | 400 | Código de autorização ou refresh token desconhecido, expirado, já usado, de outro client ou com PKCE/`redirect_uri` que não confere. A mesma resposta para todos os casos. |
 | **`unsupported_response_type`** | redirect | O `/auth` recebeu um `response_type` diferente de `code`. |
 | **`invalid_scope`** | redirect | O `/auth` recebeu um escopo fora de `openid`, `profile` e `email`. |
 | **`last_realm_admin`** | 409 | Desabilitar o usuário ou tirar o papel `admin` dele deixaria o realm sem nenhum admin habilitado. |
@@ -323,12 +351,10 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 
 ## Ainda não implementado
 
-Termos que já aparecem em decisões ou no modelo de dados, mas cujo fluxo ainda não existe.
+Termos que já aparecem em decisões, mas cujo fluxo ainda não existe.
 
 | Sigla / termo | O que é |
 |---|---|
-| **PKCE** | Proof Key for Code Exchange (RFC 7636), pronuncia-se "pixy". Proteção do `authorization_code`: o client gera um segredo aleatório (`code_verifier`), envia só o hash dele (`code_challenge`) no início do login e o segredo original na troca do código. Quem roubar o código não consegue trocá-lo. O `/auth` já exige o `code_challenge` com `S256`; a conferência do `code_verifier` entra com o `/token` de `authorization_code`. |
-| **`id_token`** | O token do OIDC que diz quem é o usuário que fez login. Será emitido junto com o access token no `authorization_code`. |
-| **Refresh token** | Token de longa duração usado para obter novos access tokens sem novo login. Revogável. |
-| **`scope`** | Lista de permissões pedidas pelo client (por exemplo, `openid profile`). Hoje o parâmetro é aceito e ignorado, e o `Principal` sai com `scopes: []`. |
-| **Revogação** | Invalidar um token antes de ele expirar. Hoje um access token vale até o `exp`. |
+| **Papéis de client** | Papéis que pertencem a um client específico, e os papéis indo para o token em `realm_access` e `resource_access`. |
+| **`prompt`** / **`max_age`** | Parâmetros do `/auth` para forçar um novo login (`prompt=login`), proibir a tela (`prompt=none`) ou limitar a idade do login. |
+| **Bloqueio por tentativas** | Travar temporariamente o login depois de várias senhas erradas. |
