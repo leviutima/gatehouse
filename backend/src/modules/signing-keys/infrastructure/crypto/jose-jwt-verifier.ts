@@ -32,6 +32,7 @@ export class JoseJwtVerifier extends JwtVerifier {
     issuer,
     audience,
     currentDate,
+    acceptExpired = false,
   }: JwtVerifyInput): Promise<JwtClaims | null> {
     try {
       const key = await importJWK(publicJwk, algorithm);
@@ -40,7 +41,9 @@ export class JoseJwtVerifier extends JwtVerifier {
         typ,
         issuer,
         audience,
-        currentDate,
+        currentDate: acceptExpired
+          ? beforeExpiry(token, currentDate)
+          : currentDate,
         requiredClaims: ['exp'],
       });
       return payload;
@@ -51,4 +54,11 @@ export class JoseJwtVerifier extends JwtVerifier {
       throw error;
     }
   }
+}
+
+function beforeExpiry(token: string, currentDate: Date): Date {
+  const { exp } = decodeJwt(token);
+  return typeof exp === 'number'
+    ? new Date(Math.min(currentDate.getTime(), exp * 1000 - 1000))
+    : currentDate;
 }
