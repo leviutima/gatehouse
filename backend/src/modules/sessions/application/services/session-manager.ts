@@ -60,6 +60,20 @@ export class SessionManager {
     const session = await this.sessions.findByTokenHash(
       this.secretHasher.hash(token),
     );
+    return this.keepAlive(realm, session);
+  }
+
+  async resumeById(
+    realm: Realm,
+    sessionId: string,
+  ): Promise<ResumedSession | null> {
+    return this.keepAlive(realm, await this.sessions.findById(sessionId));
+  }
+
+  private async keepAlive(
+    realm: Realm,
+    session: Session | null,
+  ): Promise<ResumedSession | null> {
     if (!session || session.realmId !== realm.id) {
       return null;
     }

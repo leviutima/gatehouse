@@ -118,4 +118,17 @@ describe('SessionManager', () => {
 
     await expect(manager.resume(shop, token)).resolves.toBeNull();
   });
+
+  it('resumes a session by id under the same rules', async () => {
+    const { session } = await manager.start(shop, ana);
+    clock.advance(600);
+
+    await expect(manager.resumeById(shop, session.id)).resolves.toMatchObject({
+      user: { id: ana.id },
+    });
+    await expect(manager.resumeById(other, session.id)).resolves.toBeNull();
+
+    clock.advance(1800);
+    await expect(manager.resumeById(shop, session.id)).resolves.toBeNull();
+  });
 });
