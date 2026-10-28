@@ -141,7 +141,9 @@ describe('Authorization endpoint (e2e)', () => {
     expect(response.headers['content-security-policy']).toContain(
       "frame-ancestors 'none'",
     );
-    expect(csrfCookie).toContain(`Path=${authPath}`);
+    expect(csrfCookie).toContain(
+      `Path=/realms/${realmName}/protocol/openid-connect`,
+    );
     expect(csrfCookie).toMatch(/HttpOnly/);
     expect(csrfCookie).toMatch(/SameSite=Strict/);
     expect(csrfToken).toMatch(/^[A-Za-z0-9_-]{43}$/);

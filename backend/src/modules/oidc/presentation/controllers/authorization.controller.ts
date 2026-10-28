@@ -7,18 +7,8 @@ import type { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { AuthorizeUseCase } from '../../application/use-cases/authorize.use-case.js';
 import { SignInUseCase } from '../../application/use-cases/sign-in.use-case.js';
 import { LoginCookies } from '../http/login-cookies.js';
+import { sendPage } from '../http/pages.js';
 import { LoginTheme } from '../login/login-theme.js';
-
-const PAGE_HEADERS: Record<string, string> = {
-  'Content-Type': 'text/html; charset=utf-8',
-  'Cache-Control': 'no-store',
-  Pragma: 'no-cache',
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy':
-    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'",
-};
 
 interface LoginFormState {
   identifier: string;
@@ -114,7 +104,7 @@ export class AuthorizationController {
     const csrfToken =
       this.cookies.csrfToken(request) ?? this.secretGenerator.generate();
     this.cookies.setCsrf(response, realm.name, csrfToken);
-    this.sendPage(
+    sendPage(
       response,
       200,
       this.theme.loginPage({
@@ -129,10 +119,6 @@ export class AuthorizationController {
   }
 
   private sendError(response: Response, message: string): void {
-    this.sendPage(response, 400, this.theme.errorPage({ message }));
-  }
-
-  private sendPage(response: Response, status: number, html: string): void {
-    response.status(status).set(PAGE_HEADERS).send(html);
+    sendPage(response, 400, this.theme.errorPage({ message }));
   }
 }

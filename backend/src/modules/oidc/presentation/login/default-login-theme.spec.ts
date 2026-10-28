@@ -51,6 +51,24 @@ describe('DefaultLoginTheme', () => {
     expect(html).toContain('action="/auth?a=1&amp;b=&quot;2&quot;"');
   });
 
+  it('asks for confirmation with a CSRF-protected form before signing out', () => {
+    const html = theme.logoutConfirmPage({
+      realmDisplayName: '<Shop>',
+      formAction: '/logout?state=1',
+      csrfToken: 'csrf-1',
+    });
+
+    expect(html).toContain('<form method="post" action="/logout?state=1">');
+    expect(html).toContain('name="csrf_token" value="csrf-1"');
+    expect(html).toContain('&lt;Shop&gt;');
+  });
+
+  it('confirms the user is signed out', () => {
+    expect(theme.signedOutPage({ realmDisplayName: 'Shop' })).toContain(
+      'You are signed out',
+    );
+  });
+
   it('escapes the message of the error page', () => {
     expect(theme.errorPage({ message: '<b>bad</b>' })).toContain(
       '&lt;b&gt;bad&lt;/b&gt;',

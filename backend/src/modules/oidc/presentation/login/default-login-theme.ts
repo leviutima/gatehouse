@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
 import { escapeHtml } from './html.js';
-import { ErrorPageModel, LoginPageModel, LoginTheme } from './login-theme.js';
+import {
+  ErrorPageModel,
+  LoginPageModel,
+  LoginTheme,
+  LogoutConfirmPageModel,
+  SignedOutPageModel,
+} from './login-theme.js';
 
 const IDENTIFIER_LABELS: Record<LoginIdentifier, string> = {
   [LoginIdentifier.USERNAME]: 'Username',
@@ -47,6 +53,26 @@ export class DefaultLoginTheme extends LoginTheme {
         <input id="password" name="password" type="password" autocomplete="current-password" required>
         <button type="submit">Sign in</button>
       </form>`,
+    );
+  }
+
+  logoutConfirmPage(model: LogoutConfirmPageModel): string {
+    return page(
+      `Sign out of ${model.realmDisplayName}`,
+      `<h1>Sign out</h1>
+      <p class="subtitle">Do you want to sign out of ${escapeHtml(model.realmDisplayName)}?</p>
+      <form method="post" action="${escapeHtml(model.formAction)}">
+        <input type="hidden" name="csrf_token" value="${escapeHtml(model.csrfToken)}">
+        <button type="submit">Sign out</button>
+      </form>`,
+    );
+  }
+
+  signedOutPage(model: SignedOutPageModel): string {
+    return page(
+      'Signed out',
+      `<h1>You are signed out</h1>
+      <p class="subtitle">${escapeHtml(model.realmDisplayName)}</p>`,
     );
   }
 

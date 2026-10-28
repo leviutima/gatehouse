@@ -36,13 +36,22 @@ export class LoginCookies {
     });
   }
 
+  clearSession(response: Response, realmName: string): void {
+    response.clearCookie(SESSION_COOKIE, {
+      path: realmPath(realmName),
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: this.secure,
+    });
+  }
+
   csrfToken(request: Request): string | undefined {
     return readCookie(request, CSRF_COOKIE);
   }
 
   setCsrf(response: Response, realmName: string, token: string): void {
     response.cookie(CSRF_COOKIE, token, {
-      path: `${realmPath(realmName)}/protocol/openid-connect/auth`,
+      path: `${realmPath(realmName)}/protocol/openid-connect`,
       httpOnly: true,
       sameSite: 'strict',
       secure: this.secure,
