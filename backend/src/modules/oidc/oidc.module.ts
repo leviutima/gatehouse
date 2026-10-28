@@ -17,6 +17,7 @@ import { RefreshTokenIssuer } from './application/services/refresh-token-issuer.
 import { UserTokenIssuer } from './application/services/user-token-issuer.js';
 import { AuthorizeUseCase } from './application/use-cases/authorize.use-case.js';
 import { EndSessionUseCase } from './application/use-cases/end-session.use-case.js';
+import { GetDiscoveryDocumentUseCase } from './application/use-cases/get-discovery-document.use-case.js';
 import { ExchangeAuthorizationCodeUseCase } from './application/use-cases/exchange-authorization-code.use-case.js';
 import { GetUserInfoUseCase } from './application/use-cases/get-user-info.use-case.js';
 import { IssueClientCredentialsTokenUseCase } from './application/use-cases/issue-client-credentials-token.use-case.js';
@@ -30,6 +31,7 @@ import { RealmAccessTokenVerifier } from './infrastructure/realm-access-token-ve
 import { PrismaAuthorizationCodeRepository } from './infrastructure/repositories/prisma-authorization-code.repository.js';
 import { PrismaRefreshTokenRepository } from './infrastructure/repositories/prisma-refresh-token.repository.js';
 import { AuthorizationController } from './presentation/controllers/authorization.controller.js';
+import { DiscoveryController } from './presentation/controllers/discovery.controller.js';
 import { JwksController } from './presentation/controllers/jwks.controller.js';
 import { LogoutController } from './presentation/controllers/logout.controller.js';
 import { TokenController } from './presentation/controllers/token.controller.js';
@@ -52,6 +54,7 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     AuthorizationController,
     UserInfoController,
     LogoutController,
+    DiscoveryController,
   ],
   providers: [
     { provide: RealmIssuer, useClass: ConfigRealmIssuer },
@@ -78,6 +81,7 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     GetUserInfoUseCase,
     IdTokenHintReader,
     EndSessionUseCase,
+    GetDiscoveryDocumentUseCase,
     LoginCookies,
   ],
   exports: [TokenVerifier],
