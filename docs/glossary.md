@@ -239,6 +239,10 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 | **`role_already_exists`** | 409 | Já existe um papel com esse nome no realm. |
 | **`invalid_role_name`** | 422 | Nome de papel fora do padrão: letras, números, `.` `_` `:` `-`, até 64 caracteres. |
 | **`reserved_role`** | 422 | Tentativa de apagar o papel `admin`, que todo realm precisa ter. |
+| **`client_not_found`** | 404 | O client não existe neste realm. |
+| **`client_already_exists`** | 409 | Já existe um client com esse `client_id` no realm. |
+| **`invalid_client_configuration`** | 422 | A configuração quebra uma regra do client: `client_id` ou nome fora do padrão, client público com `client_credentials`, `authorization_code` sem redirect URI, redirect URI inválida etc. |
+| **`public_client_has_no_secret`** | 422 | Pedido de secret novo para um client público, que não tem secret. |
 | **`last_realm_admin`** | 409 | Desabilitar o usuário ou tirar o papel `admin` dele deixaria o realm sem nenhum admin habilitado. |
 
 ---

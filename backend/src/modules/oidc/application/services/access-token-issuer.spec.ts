@@ -1,70 +1,18 @@
 import { decodeProtectedHeader, importJWK, jwtVerify } from 'jose';
-import { KeyEncryptor } from '../../../../shared/application/crypto/key-encryptor.js';
-import { SecretGenerator } from '../../../../shared/application/crypto/secret-generator.js';
-import { Clock } from '../../../../shared/application/time/clock.js';
-import { Realm } from '../../../realms/domain/entities/realm.entity.js';
-import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
+import { FakeKeyEncryptor } from '../../../../shared/testing/fake-key-encryptor.js';
+import { SequentialSecretGenerator } from '../../../../shared/testing/sequential-secret-generator.js';
+import { FixedClock, TEST_NOW } from '../../../../shared/testing/test-clock.js';
+import { aRealm } from '../../../realms/testing/realm.fixture.js';
 import { RealmTokenSigner } from '../../../signing-keys/application/services/realm-token-signer.js';
 import { SigningKeyProvisioner } from '../../../signing-keys/application/services/signing-key-provisioner.js';
-import { SigningKey } from '../../../signing-keys/domain/entities/signing-key.entity.js';
-import {
-  CreateSigningKeyData,
-  SigningKeyRepository,
-} from '../../../signing-keys/domain/repositories/signing-key.repository.js';
 import { JoseEs256KeyPairGenerator } from '../../../signing-keys/infrastructure/crypto/jose-es256-key-pair-generator.js';
 import { JoseJwtSigner } from '../../../signing-keys/infrastructure/crypto/jose-jwt-signer.js';
+import { InMemorySigningKeyRepository } from '../../../signing-keys/testing/in-memory-signing-key.repository.js';
 import { RealmIssuer } from '../realm-issuer.js';
 import { AccessTokenIssuer } from './access-token-issuer.js';
 
-const now = new Date('2026-10-27T12:00:00Z');
+const now = TEST_NOW;
 const nowSeconds = now.getTime() / 1000;
-
-class InMemorySigningKeyRepository extends SigningKeyRepository {
-  readonly keys: SigningKey[] = [];
-
-  findActive(realmId: string): Promise<SigningKey | null> {
-    return Promise.resolve(
-      this.keys.find((key) => key.realmId === realmId && key.isActive) ?? null,
-    );
-  }
-
-  findPublished(realmId: string): Promise<SigningKey[]> {
-    return Promise.resolve(this.keys.filter((key) => key.realmId === realmId));
-  }
-
-  create(data: CreateSigningKeyData): Promise<SigningKey> {
-    const key = new SigningKey({
-      id: `key-${this.keys.length + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.keys.push(key);
-    return Promise.resolve(key);
-  }
-}
-
-class PlainKeyEncryptor extends KeyEncryptor {
-  encrypt(plaintext: string): string {
-    return plaintext;
-  }
-
-  decrypt(payload: string): string {
-    return payload;
-  }
-}
-
-class FixedClock extends Clock {
-  now(): Date {
-    return now;
-  }
-}
-
-class FixedSecretGenerator extends SecretGenerator {
-  generate(): string {
-    return 'token-id';
-  }
-}
 
 class FakeRealmIssuer extends RealmIssuer {
   forRealm(realmName: string): string {
@@ -77,24 +25,14 @@ class FakeRealmIssuer extends RealmIssuer {
 }
 
 describe('AccessTokenIssuer', () => {
-  const realm = new Realm({
-    id: 'shop-id',
-    name: 'shop',
-    displayName: 'Shop',
-    enabled: true,
-    loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
-    passwordMinLength: 12,
-    accessTokenLifespan: 600,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const realm = aRealm({ accessTokenLifespan: 600 });
 
   let keys: InMemorySigningKeyRepository;
   let issuer: AccessTokenIssuer;
 
   beforeEach(() => {
     keys = new InMemorySigningKeyRepository();
-    const encryptor = new PlainKeyEncryptor();
+    const encryptor = new FakeKeyEncryptor();
     issuer = new AccessTokenIssuer(
       new FakeRealmIssuer(),
       new RealmTokenSigner(
@@ -106,7 +44,7 @@ describe('AccessTokenIssuer', () => {
         encryptor,
         new JoseJwtSigner(),
       ),
-      new FixedSecretGenerator(),
+      new SequentialSecretGenerator('token-id'),
       new FixedClock(),
     );
   });
@@ -150,7 +88,7 @@ describe('AccessTokenIssuer', () => {
       client_id: 'billing',
       iat: nowSeconds,
       exp: nowSeconds + 600,
-      jti: 'token-id',
+      jti: 'token-id-1',
     });
   });
 });

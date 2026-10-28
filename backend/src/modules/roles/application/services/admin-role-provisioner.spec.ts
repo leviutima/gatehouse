@@ -1,84 +1,6 @@
-import { ADMIN_ROLE_NAME, Role } from '../../domain/entities/role.entity.js';
 import { RoleAlreadyExistsError } from '../../domain/errors/role-already-exists.error.js';
-import {
-  CreateRoleData,
-  RoleAssignment,
-  RoleRepository,
-} from '../../domain/repositories/role.repository.js';
+import { InMemoryRoleRepository } from '../../testing/in-memory-role.repository.js';
 import { AdminRoleProvisioner } from './admin-role-provisioner.js';
-
-const now = new Date('2026-10-28T00:00:00Z');
-
-class InMemoryRoleRepository extends RoleRepository {
-  readonly roles: Role[] = [];
-  readonly assignments: RoleAssignment[] = [];
-  concurrentWinner: Role | null = null;
-
-  findByName(realmId: string, name: string): Promise<Role | null> {
-    return Promise.resolve(
-      this.roles.find(
-        (role) => role.realmId === realmId && role.name === name,
-      ) ?? null,
-    );
-  }
-
-  create(data: CreateRoleData): Promise<Role> {
-    if (this.concurrentWinner) {
-      this.roles.push(this.concurrentWinner);
-      return Promise.reject(new RoleAlreadyExistsError(data.name));
-    }
-    const role = new Role({
-      id: `role-${this.roles.length + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.roles.push(role);
-    return Promise.resolve(role);
-  }
-
-  assign(assignment: RoleAssignment): Promise<void> {
-    const assigned = this.assignments.some(
-      ({ userId, roleId }) =>
-        userId === assignment.userId && roleId === assignment.roleId,
-    );
-    if (!assigned) {
-      this.assignments.push(assignment);
-    }
-    return Promise.resolve();
-  }
-
-  list(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  listForUser(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  delete(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  unassign(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  countMembers(roleId: string): Promise<number> {
-    return Promise.resolve(
-      this.assignments.filter((assignment) => assignment.roleId === roleId)
-        .length,
-    );
-  }
-
-  countEnabledMembers(): Promise<number> {
-    return Promise.resolve(0);
-  }
-
-  isUserInRole(): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-}
 
 describe('AdminRoleProvisioner', () => {
   let roles: InMemoryRoleRepository;
@@ -106,17 +28,16 @@ describe('AdminRoleProvisioner', () => {
   });
 
   it('returns the role created by a concurrent caller', async () => {
-    const winner = new Role({
-      id: 'winner',
-      realmId: 'shop-id',
-      name: ADMIN_ROLE_NAME,
-      description: null,
-      createdAt: now,
-      updatedAt: now,
+    const create = roles.create.bind(roles);
+    vi.spyOn(roles, 'create').mockImplementationOnce(async (data) => {
+      await create(data);
+      throw new RoleAlreadyExistsError(data.name);
     });
-    roles.concurrentWinner = winner;
 
-    await expect(provisioner.ensureAdminRole('shop-id')).resolves.toBe(winner);
+    const role = await provisioner.ensureAdminRole('shop-id');
+
+    expect(role).toBe(roles.roles[0]);
+    expect(roles.roles).toHaveLength(1);
   });
 
   it('grants the admin role idempotently', async () => {

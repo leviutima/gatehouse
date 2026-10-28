@@ -1,260 +1,19 @@
-import { KeyEncryptor } from '../../../../shared/application/crypto/key-encryptor.js';
-import { PasswordHasher } from '../../../../shared/application/crypto/password-hasher.js';
-import { TransactionManager } from '../../../../shared/application/persistence/transaction-manager.js';
-import { Realm } from '../../../realms/domain/entities/realm.entity.js';
+import { FakeKeyEncryptor } from '../../../../shared/testing/fake-key-encryptor.js';
+import { FakePasswordHasher } from '../../../../shared/testing/fake-password-hasher.js';
+import { FakeTransactionManager } from '../../../../shared/testing/fake-transaction-manager.js';
 import { RealmAlreadyExistsError } from '../../../realms/domain/errors/realm-already-exists.error.js';
 import { WeakPasswordError } from '../../../realms/domain/errors/weak-password.error.js';
-import {
-  CreateRealmData,
-  RealmRepository,
-} from '../../../realms/domain/repositories/realm.repository.js';
-import {
-  GeneratedKeyPair,
-  KeyPairGenerator,
-} from '../../../signing-keys/application/key-pair-generator.js';
+import { InMemoryRealmRepository } from '../../../realms/testing/in-memory-realm.repository.js';
 import { AdminRoleProvisioner } from '../../../roles/application/services/admin-role-provisioner.js';
-import { Role } from '../../../roles/domain/entities/role.entity.js';
-import {
-  CreateRoleData,
-  RoleAssignment,
-  RoleRepository,
-} from '../../../roles/domain/repositories/role.repository.js';
+import { InMemoryRoleRepository } from '../../../roles/testing/in-memory-role.repository.js';
 import { SigningKeyProvisioner } from '../../../signing-keys/application/services/signing-key-provisioner.js';
-import { SigningKey } from '../../../signing-keys/domain/entities/signing-key.entity.js';
-import {
-  CreateSigningKeyData,
-  SigningKeyRepository,
-} from '../../../signing-keys/domain/repositories/signing-key.repository.js';
+import { FakeKeyPairGenerator } from '../../../signing-keys/testing/fake-key-pair-generator.js';
+import { InMemorySigningKeyRepository } from '../../../signing-keys/testing/in-memory-signing-key.repository.js';
 import { UserRegistrar } from '../../../users/application/services/user-registrar.js';
-import { User } from '../../../users/domain/entities/user.entity.js';
 import { InvalidUsernameError } from '../../../users/domain/errors/invalid-username.error.js';
-import {
-  CreateUserData,
-  UserRepository,
-} from '../../../users/domain/repositories/user.repository.js';
+import { InMemoryUserRepository } from '../../../users/testing/in-memory-user.repository.js';
 import { MasterAdminNotConfiguredError } from '../errors/master-admin-not-configured.error.js';
 import { BootstrapMasterRealmUseCase } from './bootstrap-master-realm.use-case.js';
-
-const now = new Date('2026-10-24T00:00:00Z');
-
-class InMemoryRealmRepository extends RealmRepository {
-  readonly realms: Realm[] = [];
-  failCreateWith: Error | null = null;
-
-  findByName(name: string): Promise<Realm | null> {
-    return Promise.resolve(this.realms.find((r) => r.name === name) ?? null);
-  }
-
-  list(): Promise<Realm[]> {
-    return Promise.resolve([...this.realms]);
-  }
-
-  update(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(data: CreateRealmData): Promise<Realm> {
-    if (this.failCreateWith) {
-      return Promise.reject(this.failCreateWith);
-    }
-    const realm = new Realm({
-      id: `realm-${this.realms.length + 1}`,
-      enabled: true,
-      passwordMinLength: 12,
-      accessTokenLifespan: 300,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.realms.push(realm);
-    return Promise.resolve(realm);
-  }
-}
-
-class InMemoryUserRepository extends UserRepository {
-  readonly users: User[] = [];
-
-  findByUsername(realmId: string, username: string): Promise<User | null> {
-    return Promise.resolve(
-      this.users.find(
-        (user) =>
-          user.realmId === realmId &&
-          user.username.toLowerCase() === username.toLowerCase(),
-      ) ?? null,
-    );
-  }
-
-  findById(): Promise<User | null> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  list(): Promise<User[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  update(): Promise<User> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(data: CreateUserData): Promise<User> {
-    const user = new User({
-      id: `user-${this.users.length + 1}`,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.users.push(user);
-    return Promise.resolve(user);
-  }
-}
-
-class InMemoryRoleRepository extends RoleRepository {
-  readonly roles: Role[] = [];
-  readonly assignments: RoleAssignment[] = [];
-  readonly assignedInsideTransaction: boolean[] = [];
-
-  constructor(private readonly transactions: FakeTransactionManager) {
-    super();
-  }
-
-  findByName(realmId: string, name: string): Promise<Role | null> {
-    return Promise.resolve(
-      this.roles.find(
-        (role) => role.realmId === realmId && role.name === name,
-      ) ?? null,
-    );
-  }
-
-  create(data: CreateRoleData): Promise<Role> {
-    const role = new Role({
-      id: `role-${this.roles.length + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.roles.push(role);
-    return Promise.resolve(role);
-  }
-
-  assign(assignment: RoleAssignment): Promise<void> {
-    this.assignedInsideTransaction.push(this.transactions.active);
-    this.assignments.push(assignment);
-    return Promise.resolve();
-  }
-
-  list(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  listForUser(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  delete(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  unassign(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  countMembers(roleId: string): Promise<number> {
-    return Promise.resolve(
-      this.assignments.filter((assignment) => assignment.roleId === roleId)
-        .length,
-    );
-  }
-
-  countEnabledMembers(): Promise<number> {
-    return Promise.resolve(0);
-  }
-
-  isUserInRole(): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-}
-
-class FakeTransactionManager extends TransactionManager {
-  readonly runs = vi.fn();
-  active = false;
-
-  async run<T>(work: () => Promise<T>): Promise<T> {
-    this.runs();
-    this.active = true;
-    try {
-      return await work();
-    } finally {
-      this.active = false;
-    }
-  }
-}
-
-class InMemorySigningKeyRepository extends SigningKeyRepository {
-  readonly keys: SigningKey[] = [];
-  readonly createdInsideTransaction: boolean[] = [];
-
-  constructor(private readonly transactions: FakeTransactionManager) {
-    super();
-  }
-
-  findActive(realmId: string): Promise<SigningKey | null> {
-    return Promise.resolve(
-      this.keys.find((key) => key.realmId === realmId && key.isActive) ?? null,
-    );
-  }
-
-  findPublished(realmId: string): Promise<SigningKey[]> {
-    return Promise.resolve(this.keys.filter((key) => key.realmId === realmId));
-  }
-
-  create(data: CreateSigningKeyData): Promise<SigningKey> {
-    this.createdInsideTransaction.push(this.transactions.active);
-    const key = new SigningKey({
-      id: `key-${this.keys.length + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.keys.push(key);
-    return Promise.resolve(key);
-  }
-}
-
-class FakePasswordHasher extends PasswordHasher {
-  readonly hash = vi.fn((password: string) =>
-    Promise.resolve(`hashed:${password}`),
-  );
-
-  verify(): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-
-  needsRehash(): boolean {
-    return false;
-  }
-}
-
-class FakeKeyPairGenerator extends KeyPairGenerator {
-  readonly algorithm = 'ES256';
-
-  generate(): Promise<GeneratedKeyPair> {
-    return Promise.resolve({
-      publicJwk: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' },
-      privateKeyPkcs8: 'private-pem',
-    });
-  }
-}
-
-class FakeKeyEncryptor extends KeyEncryptor {
-  encrypt(plaintext: string): string {
-    return `encrypted:${plaintext}`;
-  }
-
-  decrypt(payload: string): string {
-    return payload.replace('encrypted:', '');
-  }
-}
 
 const initialAdmin = {
   username: 'admin',
@@ -269,6 +28,8 @@ describe('BootstrapMasterRealmUseCase', () => {
   let roles: InMemoryRoleRepository;
   let hasher: FakePasswordHasher;
   let transactions: FakeTransactionManager;
+  let keysCreatedInTransaction: boolean[];
+  let adminsGrantedInTransaction: boolean[];
   let useCase: BootstrapMasterRealmUseCase;
 
   const createMaster = () =>
@@ -283,8 +44,22 @@ describe('BootstrapMasterRealmUseCase', () => {
     users = new InMemoryUserRepository();
     hasher = new FakePasswordHasher();
     transactions = new FakeTransactionManager();
-    keys = new InMemorySigningKeyRepository(transactions);
-    roles = new InMemoryRoleRepository(transactions);
+    keys = new InMemorySigningKeyRepository();
+    roles = new InMemoryRoleRepository(realms, users);
+
+    keysCreatedInTransaction = [];
+    const createKey = keys.create.bind(keys);
+    vi.spyOn(keys, 'create').mockImplementation((data) => {
+      keysCreatedInTransaction.push(transactions.active);
+      return createKey(data);
+    });
+    adminsGrantedInTransaction = [];
+    const assign = roles.assign.bind(roles);
+    vi.spyOn(roles, 'assign').mockImplementation((assignment) => {
+      adminsGrantedInTransaction.push(transactions.active);
+      return assign(assignment);
+    });
+
     useCase = new BootstrapMasterRealmUseCase(
       realms,
       new UserRegistrar(users, hasher),
@@ -321,7 +96,7 @@ describe('BootstrapMasterRealmUseCase', () => {
       realmId: realms.realms[0].id,
       status: 'ACTIVE',
     });
-    expect(keys.createdInsideTransaction).toEqual([true]);
+    expect(keysCreatedInTransaction).toEqual([true]);
   });
 
   it('makes the initial admin an admin of the master realm inside the transaction', async () => {
@@ -337,7 +112,7 @@ describe('BootstrapMasterRealmUseCase', () => {
         roleId: roles.roles[0].id,
       },
     ]);
-    expect(roles.assignedInsideTransaction).toEqual([true]);
+    expect(adminsGrantedInTransaction).toEqual([true]);
   });
 
   it('stores only the password hash, never the password', async () => {
@@ -449,7 +224,9 @@ describe('BootstrapMasterRealmUseCase', () => {
   });
 
   it('reports already_exists when a concurrent bootstrap won the race', async () => {
-    realms.failCreateWith = new RealmAlreadyExistsError('master');
+    vi.spyOn(realms, 'create').mockRejectedValueOnce(
+      new RealmAlreadyExistsError('master'),
+    );
 
     await expect(useCase.execute(initialAdmin)).resolves.toEqual({
       status: 'already_exists',
@@ -460,7 +237,6 @@ describe('BootstrapMasterRealmUseCase', () => {
   it('ensures the signing key of the master realm created by the race winner', async () => {
     const winner = await createMaster();
     vi.spyOn(realms, 'findByName').mockResolvedValueOnce(null);
-    realms.failCreateWith = new RealmAlreadyExistsError('master');
 
     await useCase.execute(initialAdmin);
 
@@ -469,7 +245,9 @@ describe('BootstrapMasterRealmUseCase', () => {
   });
 
   it('propagates unexpected failures', async () => {
-    realms.failCreateWith = new Error('database down');
+    vi.spyOn(realms, 'create').mockRejectedValueOnce(
+      new Error('database down'),
+    );
 
     await expect(useCase.execute(initialAdmin)).rejects.toThrow(
       'database down',

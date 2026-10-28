@@ -6,6 +6,7 @@ import { ClientAlreadyExistsError } from '../../domain/errors/client-already-exi
 import {
   ClientRepository,
   CreateClientData,
+  UpdateClientData,
 } from '../../domain/repositories/client.repository.js';
 import { ClientMapper } from '../mappers/client.mapper.js';
 
@@ -23,6 +24,19 @@ export class PrismaClientRepository extends ClientRepository {
       where: { realmId_clientId: { realmId, clientId } },
     });
     return row ? ClientMapper.toDomain(row) : null;
+  }
+
+  async list(realmId: string): Promise<Client[]> {
+    const rows = await this.prisma.db.client.findMany({
+      where: { realmId },
+      orderBy: { clientId: 'asc' },
+    });
+    return rows.map((row) => ClientMapper.toDomain(row));
+  }
+
+  async update(id: string, data: UpdateClientData): Promise<Client> {
+    const row = await this.prisma.db.client.update({ where: { id }, data });
+    return ClientMapper.toDomain(row);
   }
 
   async create(data: CreateClientData): Promise<Client> {

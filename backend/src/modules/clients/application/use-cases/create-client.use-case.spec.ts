@@ -1,84 +1,13 @@
-import { SecretGenerator } from '../../../../shared/application/crypto/secret-generator.js';
-import { SecretHasher } from '../../../../shared/application/crypto/secret-hasher.js';
-import { Realm } from '../../../realms/domain/entities/realm.entity.js';
+import { FakeSecretHasher } from '../../../../shared/testing/fake-secret-hasher.js';
+import { SequentialSecretGenerator } from '../../../../shared/testing/sequential-secret-generator.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
-import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
-import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
+import { InMemoryRealmRepository } from '../../../realms/testing/in-memory-realm.repository.js';
+import { aRealm } from '../../../realms/testing/realm.fixture.js';
 import { ClientType } from '../../domain/client-type.js';
-import { Client } from '../../domain/entities/client.entity.js';
 import { InvalidClientConfigurationError } from '../../domain/errors/invalid-client-configuration.error.js';
 import { GrantType } from '../../domain/grant-type.js';
-import {
-  ClientRepository,
-  CreateClientData,
-} from '../../domain/repositories/client.repository.js';
+import { InMemoryClientRepository } from '../../testing/in-memory-client.repository.js';
 import { CreateClientUseCase } from './create-client.use-case.js';
-
-const now = new Date('2026-10-27T00:00:00Z');
-
-class InMemoryRealmRepository extends RealmRepository {
-  private readonly shop = new Realm({
-    id: 'shop-id',
-    name: 'shop',
-    displayName: 'Shop',
-    enabled: true,
-    loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
-    passwordMinLength: 12,
-    accessTokenLifespan: 300,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  findByName(name: string): Promise<Realm | null> {
-    return Promise.resolve(name === this.shop.name ? this.shop : null);
-  }
-
-  list(): Promise<Realm[]> {
-    return Promise.resolve([this.shop]);
-  }
-
-  update(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-}
-
-class InMemoryClientRepository extends ClientRepository {
-  readonly clients: Client[] = [];
-
-  findByClientId(): Promise<Client | null> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(data: CreateClientData): Promise<Client> {
-    const client = new Client({
-      id: `client-${this.clients.length + 1}`,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.clients.push(client);
-    return Promise.resolve(client);
-  }
-}
-
-class FakeSecretHasher extends SecretHasher {
-  hash(secret: string): string {
-    return `hashed:${secret}`;
-  }
-
-  verify(): boolean {
-    return false;
-  }
-}
-
-class SequentialSecretGenerator extends SecretGenerator {
-  readonly generate = vi.fn(() => `secret-${this.generate.mock.calls.length}`);
-}
 
 describe('CreateClientUseCase', () => {
   let clients: InMemoryClientRepository;
@@ -89,7 +18,7 @@ describe('CreateClientUseCase', () => {
     clients = new InMemoryClientRepository();
     secrets = new SequentialSecretGenerator();
     useCase = new CreateClientUseCase(
-      new InMemoryRealmRepository(),
+      new InMemoryRealmRepository([aRealm()]),
       clients,
       secrets,
       new FakeSecretHasher(),
@@ -148,5 +77,21 @@ describe('CreateClientUseCase', () => {
       }),
     ).rejects.toBeInstanceOf(InvalidClientConfigurationError);
     expect(clients.clients).toHaveLength(0);
+  });
+
+  it.each([
+    ['a client id with a space', { clientId: 'my web' }],
+    ['a blank name', { name: '   ' }],
+  ])('rejects %s before persisting it', async (_case, overrides) => {
+    await expect(
+      useCase.execute({ ...web, ...overrides }),
+    ).rejects.toBeInstanceOf(InvalidClientConfigurationError);
+    expect(clients.clients).toHaveLength(0);
+  });
+
+  it('stores the name without surrounding spaces', async () => {
+    const { client } = await useCase.execute({ ...web, name: '  Web  ' });
+
+    expect(client.name).toBe('Web');
   });
 });
