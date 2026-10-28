@@ -24,6 +24,7 @@ import { Public } from '../../../../shared/presentation/decorators/public.decora
 import { errorResponseSchema } from '../../../../shared/presentation/openapi/error-response.schema.js';
 import { openApiSchema } from '../../../../shared/presentation/openapi/openapi-schema.js';
 import { OAuthError } from '../../application/errors/oauth.error.js';
+import { ExchangeAuthorizationCodeUseCase } from '../../application/use-cases/exchange-authorization-code.use-case.js';
 import { IssueClientCredentialsTokenUseCase } from '../../application/use-cases/issue-client-credentials-token.use-case.js';
 import { OAuthErrorFilter } from '../filters/oauth-error.filter.js';
 import {
@@ -39,6 +40,7 @@ import {
 } from '../schemas/token-response.schema.js';
 
 const CLIENT_CREDENTIALS = 'client_credentials';
+const AUTHORIZATION_CODE = 'authorization_code';
 
 @ApiTags('OpenID Connect')
 @Public()
@@ -47,6 +49,7 @@ const CLIENT_CREDENTIALS = 'client_credentials';
 export class TokenController {
   constructor(
     private readonly issueClientCredentialsToken: IssueClientCredentialsTokenUseCase,
+    private readonly exchangeAuthorizationCode: ExchangeAuthorizationCodeUseCase,
   ) {}
 
   @Post('token')
@@ -56,7 +59,7 @@ export class TokenController {
   @ApiOperation({
     summary: 'Token endpoint',
     description:
-      'Issues access tokens. Supports the client_credentials grant, authenticating the client with client_secret_basic or client_secret_post.',
+      'Issues tokens for the client_credentials and authorization_code grants. Confidential clients authenticate with client_secret_basic or client_secret_post; public clients send only client_id and prove the code with PKCE.',
   })
   @ApiParam({ name: 'realm', example: 'master' })
   @ApiConsumes('application/x-www-form-urlencoded')
@@ -74,17 +77,38 @@ export class TokenController {
   ): Promise<TokenResponse> {
     assertFormEncoded(contentType);
     const request = parseTokenRequest(body);
-    if (request.grant_type !== CLIENT_CREDENTIALS) {
-      throw OAuthError.unsupportedGrantType(request.grant_type);
+    const credentials = () => resolveClientCredentials(authorization, request);
+
+    if (request.grant_type === CLIENT_CREDENTIALS) {
+      const { token, expiresIn } =
+        await this.issueClientCredentialsToken.execute({
+          realmName: realm,
+          credentials: credentials(),
+        });
+      return {
+        access_token: token,
+        token_type: 'Bearer',
+        expires_in: expiresIn,
+      };
     }
 
-    const { token, expiresIn } = await this.issueClientCredentialsToken.execute(
-      {
+    if (request.grant_type === AUTHORIZATION_CODE) {
+      const tokens = await this.exchangeAuthorizationCode.execute({
         realmName: realm,
-        credentials: resolveClientCredentials(authorization, request),
-      },
-    );
+        credentials: credentials(),
+        code: request.code,
+        redirectUri: request.redirect_uri,
+        codeVerifier: request.code_verifier,
+      });
+      return {
+        access_token: tokens.accessToken,
+        token_type: 'Bearer',
+        expires_in: tokens.expiresIn,
+        ...(tokens.idToken === null ? {} : { id_token: tokens.idToken }),
+        scope: tokens.scope,
+      };
+    }
 
-    return { access_token: token, token_type: 'Bearer', expires_in: expiresIn };
+    throw OAuthError.unsupportedGrantType(request.grant_type);
   }
 }

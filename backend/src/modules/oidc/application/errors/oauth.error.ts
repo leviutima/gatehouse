@@ -1,6 +1,7 @@
 export type OAuthErrorCode =
   | 'invalid_request'
   | 'invalid_client'
+  | 'invalid_grant'
   | 'unauthorized_client'
   | 'unsupported_grant_type';
 
@@ -19,6 +20,13 @@ export class OAuthError extends Error {
 
   static invalidClient(): OAuthError {
     return new OAuthError('invalid_client', 'Client authentication failed');
+  }
+
+  static invalidGrant(): OAuthError {
+    return new OAuthError(
+      'invalid_grant',
+      'The authorization code is invalid, expired or was already used',
+    );
   }
 
   static unauthorizedClient(grantType: string): OAuthError {
