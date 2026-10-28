@@ -2,6 +2,7 @@ import { ClientType } from '../client-type.js';
 import { InvalidClientConfigurationError } from '../errors/invalid-client-configuration.error.js';
 import { GrantType } from '../grant-type.js';
 import { assertValidRedirectUri } from '../redirect-uri.js';
+import { assertValidWebOrigin } from '../web-origin.js';
 
 export interface ClientProps {
   id: string;
@@ -12,6 +13,7 @@ export interface ClientProps {
   secretHash: string | null;
   redirectUris: string[];
   postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes: GrantType[];
   enabled: boolean;
   createdAt: Date;
@@ -24,6 +26,7 @@ export type ClientConfiguration = Pick<
   | 'secretHash'
   | 'redirectUris'
   | 'postLogoutRedirectUris'
+  | 'webOrigins'
   | 'grantTypes'
 >;
 
@@ -36,6 +39,7 @@ export class Client {
   readonly secretHash: string | null;
   readonly redirectUris: readonly string[];
   readonly postLogoutRedirectUris: readonly string[];
+  readonly webOrigins: readonly string[];
   readonly grantTypes: readonly GrantType[];
   readonly enabled: boolean;
   readonly createdAt: Date;
@@ -51,6 +55,7 @@ export class Client {
     this.secretHash = props.secretHash;
     this.redirectUris = [...props.redirectUris];
     this.postLogoutRedirectUris = [...(props.postLogoutRedirectUris ?? [])];
+    this.webOrigins = [...(props.webOrigins ?? [])];
     this.grantTypes = [...props.grantTypes];
     this.enabled = props.enabled;
     this.createdAt = props.createdAt;
@@ -67,6 +72,10 @@ export class Client {
 
   isRedirectUriAllowed(uri: string): boolean {
     return this.redirectUris.includes(uri);
+  }
+
+  allowsWebOrigin(origin: string): boolean {
+    return this.webOrigins.includes(origin);
   }
 
   isPostLogoutRedirectUriAllowed(uri: string): boolean {
@@ -119,6 +128,9 @@ export class Client {
       ...(props.postLogoutRedirectUris ?? []),
     ]) {
       assertValidRedirectUri(uri);
+    }
+    for (const origin of props.webOrigins ?? []) {
+      assertValidWebOrigin(origin);
     }
   }
 }

@@ -107,6 +107,7 @@ describe('Admin clients API (e2e)', () => {
       type: 'CONFIDENTIAL',
       redirectUris: [],
       postLogoutRedirectUris: [],
+      webOrigins: [],
       grantTypes: ['CLIENT_CREDENTIALS'],
       enabled: true,
       secret: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),

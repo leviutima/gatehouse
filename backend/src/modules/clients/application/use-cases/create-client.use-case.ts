@@ -22,6 +22,7 @@ export interface CreateClientInput {
   type: ClientType;
   redirectUris: string[];
   postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes: GrantType[];
 }
 
@@ -60,6 +61,7 @@ export class CreateClientUseCase {
       secretHash: secret === null ? null : this.secretHasher.hash(secret),
       redirectUris: input.redirectUris,
       postLogoutRedirectUris: input.postLogoutRedirectUris ?? [],
+      webOrigins: input.webOrigins ?? [],
       grantTypes: input.grantTypes,
     };
     Client.assertValid(data);

@@ -85,6 +85,7 @@ model Client {
   secretHash             String?     @map("secret_hash")
   redirectUris           String[]    @map("redirect_uris")
   postLogoutRedirectUris String[]    @default([]) @map("post_logout_redirect_uris")
+  webOrigins             String[]    @default([]) @map("web_origins")
   grantTypes             GrantType[] @map("grant_types")
   enabled                Boolean     @default(true)
   createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz

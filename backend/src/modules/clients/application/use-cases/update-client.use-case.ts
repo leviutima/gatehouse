@@ -9,6 +9,7 @@ export interface UpdateClientChanges {
   name?: string;
   redirectUris?: string[];
   postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes?: GrantType[];
   enabled?: boolean;
 }
@@ -44,6 +45,7 @@ export class UpdateClientUseCase {
       postLogoutRedirectUris: changes.postLogoutRedirectUris ?? [
         ...client.postLogoutRedirectUris,
       ],
+      webOrigins: changes.webOrigins ?? [...client.webOrigins],
       grantTypes: changes.grantTypes ?? [...client.grantTypes],
     });
 

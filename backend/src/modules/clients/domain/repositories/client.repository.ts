@@ -10,6 +10,7 @@ export interface CreateClientData {
   secretHash: string | null;
   redirectUris: string[];
   postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes: GrantType[];
 }
 
@@ -17,6 +18,7 @@ export interface UpdateClientData {
   name?: string;
   redirectUris?: string[];
   postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes?: GrantType[];
   enabled?: boolean;
   secretHash?: string;

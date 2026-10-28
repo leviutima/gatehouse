@@ -12,6 +12,7 @@ export const ClientMapper = {
       secretHash: row.secretHash,
       redirectUris: row.redirectUris,
       postLogoutRedirectUris: row.postLogoutRedirectUris,
+      webOrigins: row.webOrigins,
       grantTypes: row.grantTypes,
       enabled: row.enabled,
       createdAt: row.createdAt,
