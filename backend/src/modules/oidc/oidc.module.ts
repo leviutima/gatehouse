@@ -11,10 +11,12 @@ import { AccessTokenIssuer } from './application/services/access-token-issuer.js
 import { AuthorizationCodeIssuer } from './application/services/authorization-code-issuer.js';
 import { AuthorizationCompleter } from './application/services/authorization-completer.js';
 import { AuthorizationRequestValidator } from './application/services/authorization-request-validator.js';
+import { IdTokenHintReader } from './application/services/id-token-hint-reader.js';
 import { IdTokenIssuer } from './application/services/id-token-issuer.js';
 import { RefreshTokenIssuer } from './application/services/refresh-token-issuer.js';
 import { UserTokenIssuer } from './application/services/user-token-issuer.js';
 import { AuthorizeUseCase } from './application/use-cases/authorize.use-case.js';
+import { EndSessionUseCase } from './application/use-cases/end-session.use-case.js';
 import { ExchangeAuthorizationCodeUseCase } from './application/use-cases/exchange-authorization-code.use-case.js';
 import { GetUserInfoUseCase } from './application/use-cases/get-user-info.use-case.js';
 import { IssueClientCredentialsTokenUseCase } from './application/use-cases/issue-client-credentials-token.use-case.js';
@@ -29,6 +31,7 @@ import { PrismaAuthorizationCodeRepository } from './infrastructure/repositories
 import { PrismaRefreshTokenRepository } from './infrastructure/repositories/prisma-refresh-token.repository.js';
 import { AuthorizationController } from './presentation/controllers/authorization.controller.js';
 import { JwksController } from './presentation/controllers/jwks.controller.js';
+import { LogoutController } from './presentation/controllers/logout.controller.js';
 import { TokenController } from './presentation/controllers/token.controller.js';
 import { UserInfoController } from './presentation/controllers/user-info.controller.js';
 import { LoginCookies } from './presentation/http/login-cookies.js';
@@ -48,6 +51,7 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     TokenController,
     AuthorizationController,
     UserInfoController,
+    LogoutController,
   ],
   providers: [
     { provide: RealmIssuer, useClass: ConfigRealmIssuer },
@@ -72,6 +76,8 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     UserTokenIssuer,
     RefreshTokensUseCase,
     GetUserInfoUseCase,
+    IdTokenHintReader,
+    EndSessionUseCase,
     LoginCookies,
   ],
   exports: [TokenVerifier],
