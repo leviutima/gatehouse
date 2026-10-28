@@ -9,12 +9,14 @@ export interface CreateClientData {
   type: ClientType;
   secretHash: string | null;
   redirectUris: string[];
+  postLogoutRedirectUris?: string[];
   grantTypes: GrantType[];
 }
 
 export interface UpdateClientData {
   name?: string;
   redirectUris?: string[];
+  postLogoutRedirectUris?: string[];
   grantTypes?: GrantType[];
   enabled?: boolean;
   secretHash?: string;

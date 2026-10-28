@@ -8,6 +8,7 @@ export const createClientSchema = z.object({
   name: z.string().meta({ example: 'Billing service' }),
   type: z.enum(ClientType),
   redirectUris: z.array(z.string()).default([]),
+  postLogoutRedirectUris: z.array(z.string()).default([]),
   grantTypes: z.array(z.enum(GrantType)),
 });
 
@@ -17,6 +18,7 @@ export const updateClientSchema = z
   .strictObject({
     name: z.string(),
     redirectUris: z.array(z.string()),
+    postLogoutRedirectUris: z.array(z.string()),
     grantTypes: z.array(z.enum(GrantType)),
     enabled: z.boolean(),
   })
@@ -33,6 +35,7 @@ export const clientResponseSchema = z.object({
   name: z.string(),
   type: z.enum(ClientType),
   redirectUris: z.array(z.string()),
+  postLogoutRedirectUris: z.array(z.string()),
   grantTypes: z.array(z.enum(GrantType)),
   enabled: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -63,6 +66,7 @@ export function toClientResponse(client: Client): ClientResponse {
     name: client.name,
     type: client.type,
     redirectUris: [...client.redirectUris],
+    postLogoutRedirectUris: [...client.postLogoutRedirectUris],
     grantTypes: [...client.grantTypes],
     enabled: client.enabled,
     createdAt: client.createdAt.toISOString(),
