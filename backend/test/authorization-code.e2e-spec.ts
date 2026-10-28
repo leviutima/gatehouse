@@ -1,9 +1,8 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { createLocalJWKSet, jwtVerify } from 'jose';
-import request, { Response } from 'supertest';
+import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { CreateClientUseCase } from '../src/modules/clients/application/use-cases/create-client.use-case.js';
@@ -11,19 +10,7 @@ import { ClientType } from '../src/modules/clients/domain/client-type.js';
 import { GrantType } from '../src/modules/clients/domain/grant-type.js';
 import type { Env } from '../src/shared/infrastructure/config/env.schema.js';
 import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service.js';
-
-interface Pkce {
-  verifier: string;
-  challenge: string;
-}
-
-const pkce = (): Pkce => {
-  const verifier = randomBytes(32).toString('base64url');
-  return {
-    verifier,
-    challenge: createHash('sha256').update(verifier).digest('base64url'),
-  };
-};
+import { pkce, signInThroughBrowser } from './support/browser-login.js';
 
 describe('authorization_code grant (e2e)', () => {
   let app: INestApplication<App>;
@@ -41,47 +28,14 @@ describe('authorization_code grant (e2e)', () => {
 
   const http = () => request(app.getHttpServer());
 
-  function setCookie(response: Response, name: string): string | undefined {
-    const header = response.headers['set-cookie'] as unknown;
-    const cookies = Array.isArray(header) ? (header as string[]) : [];
-    return cookies.find((value) => value.startsWith(`${name}=`))?.split(';')[0];
-  }
-
-  async function login(
-    clientId: string,
-    redirectUri: string,
-    challenge: Pkce,
-  ): Promise<{ code: string; sessionCookie: string }> {
-    const query = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      scope: 'openid profile email',
-      state: 'state-1',
-      nonce: 'nonce-1',
-      code_challenge: challenge.challenge,
-      code_challenge_method: 'S256',
-    }).toString();
-    const page = await http().get(`${authPath}?${query}`).expect(200);
-    const csrfToken = /name="csrf_token" value="([^"]+)"/.exec(page.text)![1];
-
-    const signedIn = await http()
-      .post(`${authPath}?${query}`)
-      .set('Cookie', setCookie(page, 'GATEHOUSE_LOGIN_CSRF')!)
-      .type('form')
-      .send({
-        csrf_token: csrfToken,
-        identifier: config.get('GATEHOUSE_ADMIN_USERNAME', { infer: true }),
-        password: config.get('GATEHOUSE_ADMIN_PASSWORD', { infer: true }),
-      })
-      .expect(303);
-
-    const location = new URL(signedIn.headers.location as string);
-    return {
-      code: location.searchParams.get('code')!,
-      sessionCookie: setCookie(signedIn, 'GATEHOUSE_SESSION')!,
-    };
-  }
+  const login = (clientId: string, redirectUri: string) =>
+    signInThroughBrowser(app, {
+      realm: 'master',
+      clientId,
+      redirectUri,
+      identifier: config.get('GATEHOUSE_ADMIN_USERNAME', { infer: true })!,
+      password: config.get('GATEHOUSE_ADMIN_PASSWORD', { infer: true })!,
+    });
 
   const exchange = (fields: Record<string, string>, secret?: string) => {
     const call = http().post(tokenPath).type('form');
@@ -129,8 +83,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('exchanges the code of a public client for verifiable access and id tokens', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code, pkce: challenge } = await login(consoleId, consoleRedirect);
 
     const { body } = await exchange({
       client_id: consoleId,
@@ -192,8 +145,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('gives the master admin a token that administers the realms', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code, pkce: challenge } = await login(consoleId, consoleRedirect);
     const { body } = await exchange({
       client_id: consoleId,
       code,
@@ -212,12 +164,11 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('refuses a reused code and ends the session that produced it', async () => {
-    const challenge = pkce();
-    const { code, sessionCookie } = await login(
-      consoleId,
-      consoleRedirect,
-      challenge,
-    );
+    const {
+      code,
+      sessionCookie,
+      pkce: challenge,
+    } = await login(consoleId, consoleRedirect);
     const fields = {
       client_id: consoleId,
       code,
@@ -244,8 +195,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('burns the code when the PKCE verifier is wrong', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code, pkce: challenge } = await login(consoleId, consoleRedirect);
     const fields = {
       client_id: consoleId,
       code,
@@ -261,8 +211,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('refuses a redirect_uri other than the one of the authorization request', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code, pkce: challenge } = await login(consoleId, consoleRedirect);
 
     await exchange({
       client_id: consoleId,
@@ -275,8 +224,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('refuses the code of one client presented by another', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code, pkce: challenge } = await login(consoleId, consoleRedirect);
 
     await exchange(
       {
@@ -292,8 +240,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('requires a confidential client to authenticate', async () => {
-    const challenge = pkce();
-    const { code } = await login(portalId, portalRedirect, challenge);
+    const { code, pkce: challenge } = await login(portalId, portalRedirect);
     const fields = {
       client_id: portalId,
       code,
@@ -308,8 +255,7 @@ describe('authorization_code grant (e2e)', () => {
   });
 
   it('requires the PKCE verifier', async () => {
-    const challenge = pkce();
-    const { code } = await login(consoleId, consoleRedirect, challenge);
+    const { code } = await login(consoleId, consoleRedirect);
 
     await exchange({
       client_id: consoleId,
