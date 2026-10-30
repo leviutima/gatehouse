@@ -1,10 +1,14 @@
+import { z } from 'zod'
+
 const STORAGE_KEY = 'gatehouse.login-transaction'
 
-export interface LoginTransaction {
-  state: string
-  nonce: string
-  codeVerifier: string
-}
+const loginTransactionSchema = z.object({
+  state: z.string().min(1),
+  nonce: z.string().min(1),
+  codeVerifier: z.string().min(1),
+})
+
+export type LoginTransaction = z.infer<typeof loginTransactionSchema>
 
 export type TransactionStorage = Pick<
   Storage,
@@ -27,14 +31,7 @@ export function takeLoginTransaction(
     return null
   }
   try {
-    const parsed = JSON.parse(stored) as Partial<LoginTransaction> | null
-    return parsed?.state && parsed.nonce && parsed.codeVerifier
-      ? {
-          state: parsed.state,
-          nonce: parsed.nonce,
-          codeVerifier: parsed.codeVerifier,
-        }
-      : null
+    return loginTransactionSchema.parse(JSON.parse(stored))
   } catch {
     return null
   }
