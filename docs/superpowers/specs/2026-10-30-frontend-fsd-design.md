@@ -17,11 +17,11 @@ O React Hook Form é instalado junto com `@hookform/resolvers`, mas fica sem uso
 
 ```
 src/
-  app/       App, providers (QueryClient, sessão), styles
+  app/       App, setup (QueryClient, sessão, providers), styles
   pages/     realms/
   widgets/   app-header/, realms-table/
   features/  sign-out/
-  entities/  session/ (AuthSession, useSession, interceptors)
+  entities/  session/ (AuthSession, useSession, interceptors, config do client admin-console)
              realm/   (schema zod, API, useRealmsQuery)
   shared/    api/ (instâncias axios)
              config/ (env validado com zod)
@@ -33,7 +33,7 @@ src/
 | `auth/pkce.ts` | `shared/lib/oidc` |
 | `auth/login-transaction.ts` | `shared/lib/oidc` |
 | `auth/oidc-client.ts` | `shared/lib/oidc` |
-| `auth/oidc-config.ts` | `shared/lib/oidc` |
+| `auth/oidc-config.ts` | Tipo `OidcConfig` em `shared/lib/oidc`; `consoleOidcConfig` em `entities/session` |
 | `auth/testing/*` | `shared/lib/oidc/testing` |
 | `auth/auth-session.ts` | `entities/session` |
 | `api/admin-api.ts` | `entities/realm` (request) e `entities/session` (interceptors) |
@@ -47,7 +47,10 @@ src/
 - Cada slice expõe um `index.ts`, e o restante do código só importa por ele.
 - Uma camada só importa das camadas abaixo dela.
 - O alias `@/` aponta para `src/`, configurado no Vite e no TypeScript.
-- O Steiger, linter oficial do FSD, entra no `npm run lint`, e assim também no CI. Se for incompatível com as versões atuais de Vite ou TypeScript, o problema é reportado em vez de contornado.
+- O Steiger, linter oficial do FSD, entra no `npm run lint`, e assim também no CI, com duas exceções:
+  - `fsd/insignificant-slice` fica desligada, porque com poucas telas cada slice tem um único consumidor e a regra pediria para fundir tudo. Vale reavaliar quando o console crescer.
+  - `fsd/no-public-api-sidestep` fica desligada só em `*.spec.ts` e `testing/`, porque helpers de teste não fazem parte da API pública.
+- O Steiger detecta `import` proibido, mas não `export … from`. Reexports entre camadas dependem de revisão.
 
 ## Bibliotecas
 
