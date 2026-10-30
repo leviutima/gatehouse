@@ -7,10 +7,16 @@ import {
   logoutUrl,
   verifiedIdTokenClaims,
 } from './oidc-client.ts'
-import { consoleOidcConfig } from './oidc-config.ts'
+import type { OidcConfig } from './oidc-config.ts'
 import { fakeJwt, jsonResponse, providerMetadata } from './testing/fixtures.ts'
 
-const config = consoleOidcConfig('http://id.test', 'http://console.test')
+const config: OidcConfig = {
+  issuer: 'http://id.test/realms/master',
+  clientId: 'admin-console',
+  scope: 'openid profile email',
+  redirectUri: 'http://console.test/callback',
+  postLogoutRedirectUri: 'http://console.test/',
+}
 const transaction = { state: 'state-1', nonce: 'nonce-1', codeVerifier: 'v-1' }
 
 afterEach(() => {

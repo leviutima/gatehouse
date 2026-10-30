@@ -1,5 +1,3 @@
-import { takeLoginTransaction, saveLoginTransaction } from './login-transaction.ts'
-import type { TransactionStorage } from './login-transaction.ts'
 import {
   authorizationCode,
   authorizationUrl,
@@ -7,12 +5,19 @@ import {
   fetchProviderMetadata,
   logoutUrl,
   OidcError,
+  randomToken,
   refreshTokens,
+  s256Challenge,
+  saveLoginTransaction,
+  takeLoginTransaction,
   verifiedIdTokenClaims,
-} from './oidc-client.ts'
-import type { ProviderMetadata, TokenSet } from './oidc-client.ts'
-import type { OidcConfig } from './oidc-config.ts'
-import { randomToken, s256Challenge } from './pkce.ts'
+} from '@/shared/lib/oidc'
+import type {
+  OidcConfig,
+  ProviderMetadata,
+  TokenSet,
+  TransactionStorage,
+} from '@/shared/lib/oidc'
 
 const CALLBACK_PATH = '/callback'
 const EXPIRY_MARGIN_MS = 30_000

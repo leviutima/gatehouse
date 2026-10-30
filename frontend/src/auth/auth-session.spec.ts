@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthSession, SessionExpiredError } from './auth-session.ts'
 import type { AuthBrowser } from './auth-session.ts'
-import { saveLoginTransaction } from './login-transaction.ts'
+import { saveLoginTransaction } from '@/shared/lib/oidc'
 import { consoleOidcConfig } from './oidc-config.ts'
-import { fakeJwt, jsonResponse, providerMetadata } from './testing/fixtures.ts'
-import { memoryStorage } from './testing/memory-storage.ts'
+import { fakeJwt, jsonResponse, providerMetadata } from '@/shared/lib/oidc/testing/fixtures.ts'
+import { memoryStorage } from '@/shared/lib/oidc/testing/memory-storage.ts'
 
 const config = consoleOidcConfig('http://id.test', 'http://console.test')
 const transaction = { state: 'state-1', nonce: 'nonce-1', codeVerifier: 'v-1' }

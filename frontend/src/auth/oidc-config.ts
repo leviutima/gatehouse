@@ -1,14 +1,8 @@
+import type { OidcConfig } from '@/shared/lib/oidc'
+
 const MASTER_REALM = 'master'
 const CONSOLE_CLIENT_ID = 'admin-console'
 const CONSOLE_SCOPE = 'openid profile email'
-
-export interface OidcConfig {
-  issuer: string
-  clientId: string
-  scope: string
-  redirectUri: string
-  postLogoutRedirectUri: string
-}
 
 export function consoleOidcConfig(
   gatehouseUrl: string | undefined,
