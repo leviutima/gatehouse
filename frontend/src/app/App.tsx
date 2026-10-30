@@ -1,20 +1,16 @@
 import { useEffect, useState } from 'react'
-import { AdminApi } from './api/admin-api.ts'
-import { AuthSession } from '@/entities/session'
+import { useSession } from '@/entities/session'
 import type { SessionUser } from '@/entities/session'
-import { RealmsPage } from './realms/RealmsPage.tsx'
+import { RealmsPage } from '@/pages/realms'
+import { AppHeader } from '@/widgets/app-header'
 
 type AppState =
   | { kind: 'starting' }
   | { kind: 'signed_in'; user: SessionUser }
   | { kind: 'failed'; message: string }
 
-interface AppProps {
-  session: AuthSession
-  api: AdminApi
-}
-
-function App({ session, api }: AppProps) {
+export function App() {
+  const session = useSession()
   const [state, setState] = useState<AppState>({ kind: 'starting' })
 
   useEffect(() => {
@@ -49,20 +45,9 @@ function App({ session, api }: AppProps) {
     case 'signed_in':
       return (
         <>
-          <header className="topbar">
-            <strong>Gatehouse</strong>
-            <span className="muted">{state.user.username}</span>
-            <button type="button" onClick={() => void session.logout()}>
-              Sign out
-            </button>
-          </header>
-          <main className="content">
-            <h1>Realms</h1>
-            <RealmsPage api={api} />
-          </main>
+          <AppHeader username={state.user.username} />
+          <RealmsPage />
         </>
       )
   }
 }
-
-export default App

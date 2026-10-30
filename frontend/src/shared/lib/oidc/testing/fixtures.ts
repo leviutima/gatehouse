@@ -9,13 +9,6 @@ export const providerMetadata: ProviderMetadata = {
   end_session_endpoint: `${ENDPOINTS}/logout`,
 }
 
-export function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
 export function fakeJwt(claims: object): string {
   const encode = (value: object) =>
     btoa(
