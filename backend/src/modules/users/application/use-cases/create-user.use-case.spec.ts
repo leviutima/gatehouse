@@ -1,111 +1,14 @@
-import { PasswordHasher } from '../../../../shared/application/crypto/password-hasher.js';
-import { Realm } from '../../../realms/domain/entities/realm.entity.js';
+import { FakePasswordHasher } from '../../../../shared/testing/fake-password-hasher.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
-import { UsernameRequiredError } from '../../domain/errors/username-required.error.js';
 import { WeakPasswordError } from '../../../realms/domain/errors/weak-password.error.js';
-import {
-  LoginIdentifier,
-  type LoginIdentifier as LoginIdentifierType,
-} from '../../../realms/domain/login-identifier.js';
-import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
-import { User } from '../../domain/entities/user.entity.js';
+import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
+import { InMemoryRealmRepository } from '../../../realms/testing/in-memory-realm.repository.js';
+import { aRealm } from '../../../realms/testing/realm.fixture.js';
 import { InvalidUsernameError } from '../../domain/errors/invalid-username.error.js';
-import {
-  CreateUserData,
-  UserRepository,
-} from '../../domain/repositories/user.repository.js';
+import { UsernameRequiredError } from '../../domain/errors/username-required.error.js';
+import { InMemoryUserRepository } from '../../testing/in-memory-user.repository.js';
 import { UserRegistrar } from '../services/user-registrar.js';
 import { CreateUserUseCase } from './create-user.use-case.js';
-
-const now = new Date('2026-10-24T00:00:00Z');
-
-function realm(name: string, loginIdentifier: LoginIdentifierType): Realm {
-  return new Realm({
-    id: `${name}-id`,
-    name,
-    displayName: name,
-    enabled: true,
-    loginIdentifier,
-    passwordMinLength: 12,
-    accessTokenLifespan: 300,
-    createdAt: now,
-    updatedAt: now,
-  });
-}
-
-class InMemoryRealmRepository extends RealmRepository {
-  constructor(private readonly realms: Realm[]) {
-    super();
-  }
-
-  findByName(name: string): Promise<Realm | null> {
-    return Promise.resolve(this.realms.find((r) => r.name === name) ?? null);
-  }
-
-  list(): Promise<Realm[]> {
-    return Promise.resolve([...this.realms]);
-  }
-
-  update(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(): Promise<Realm> {
-    return Promise.reject(new Error('not used'));
-  }
-}
-
-class InMemoryUserRepository extends UserRepository {
-  readonly users: User[] = [];
-
-  findByUsername(realmId: string, username: string): Promise<User | null> {
-    return Promise.resolve(
-      this.users.find(
-        (user) =>
-          user.realmId === realmId &&
-          user.username.toLowerCase() === username.toLowerCase(),
-      ) ?? null,
-    );
-  }
-
-  findById(): Promise<User | null> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  list(): Promise<User[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  update(): Promise<User> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  create(data: CreateUserData): Promise<User> {
-    const user = new User({
-      id: `user-${this.users.length + 1}`,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.users.push(user);
-    return Promise.resolve(user);
-  }
-}
-
-class FakePasswordHasher extends PasswordHasher {
-  readonly hash = vi.fn((password: string) =>
-    Promise.resolve(`hashed:${password}`),
-  );
-
-  verify(): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-
-  needsRehash(): boolean {
-    return false;
-  }
-}
 
 describe('CreateUserUseCase', () => {
   let users: InMemoryUserRepository;
@@ -117,8 +20,11 @@ describe('CreateUserUseCase', () => {
     hasher = new FakePasswordHasher();
     useCase = new CreateUserUseCase(
       new InMemoryRealmRepository([
-        realm('shop', LoginIdentifier.USERNAME_OR_EMAIL),
-        realm('newsletter', LoginIdentifier.EMAIL),
+        aRealm({ name: 'shop' }),
+        aRealm({
+          name: 'newsletter',
+          loginIdentifier: LoginIdentifier.EMAIL,
+        }),
       ]),
       new UserRegistrar(users, hasher),
     );

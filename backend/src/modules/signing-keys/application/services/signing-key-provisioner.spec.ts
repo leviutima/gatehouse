@@ -1,60 +1,10 @@
-import { KeyEncryptor } from '../../../../shared/application/crypto/key-encryptor.js';
-import { SigningKey } from '../../domain/entities/signing-key.entity.js';
+import { FakeKeyEncryptor } from '../../../../shared/testing/fake-key-encryptor.js';
+import type { SigningKey } from '../../domain/entities/signing-key.entity.js';
 import { ActiveSigningKeyAlreadyExistsError } from '../../domain/errors/active-signing-key-already-exists.error.js';
-import {
-  CreateSigningKeyData,
-  SigningKeyRepository,
-} from '../../domain/repositories/signing-key.repository.js';
 import { SigningKeyStatus } from '../../domain/signing-key-status.js';
-import { GeneratedKeyPair, KeyPairGenerator } from '../key-pair-generator.js';
+import { FakeKeyPairGenerator } from '../../testing/fake-key-pair-generator.js';
+import { InMemorySigningKeyRepository } from '../../testing/in-memory-signing-key.repository.js';
 import { SigningKeyProvisioner } from './signing-key-provisioner.js';
-
-const now = new Date('2026-10-27T00:00:00Z');
-
-class InMemorySigningKeyRepository extends SigningKeyRepository {
-  readonly keys: SigningKey[] = [];
-
-  findActive(realmId: string): Promise<SigningKey | null> {
-    return Promise.resolve(
-      this.keys.find((key) => key.realmId === realmId && key.isActive) ?? null,
-    );
-  }
-
-  findPublished(realmId: string): Promise<SigningKey[]> {
-    return Promise.resolve(this.keys.filter((key) => key.realmId === realmId));
-  }
-
-  create(data: CreateSigningKeyData): Promise<SigningKey> {
-    const key = new SigningKey({
-      id: `key-${this.keys.length + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      ...data,
-    });
-    this.keys.push(key);
-    return Promise.resolve(key);
-  }
-}
-
-class FakeKeyPairGenerator extends KeyPairGenerator {
-  readonly algorithm = 'ES256';
-  readonly generate = vi.fn((): Promise<GeneratedKeyPair> =>
-    Promise.resolve({
-      publicJwk: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' },
-      privateKeyPkcs8: 'private-pem',
-    }),
-  );
-}
-
-class FakeKeyEncryptor extends KeyEncryptor {
-  encrypt(plaintext: string): string {
-    return `encrypted:${plaintext}`;
-  }
-
-  decrypt(payload: string): string {
-    return payload.replace('encrypted:', '');
-  }
-}
 
 describe('SigningKeyProvisioner', () => {
   let keys: InMemorySigningKeyRepository;

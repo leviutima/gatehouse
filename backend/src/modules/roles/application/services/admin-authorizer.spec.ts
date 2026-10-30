@@ -1,66 +1,10 @@
 import type { Principal } from '../../../../shared/application/auth/principal.js';
-import type { Role } from '../../domain/entities/role.entity.js';
-import {
-  CreateRoleData,
-  RoleAssignment,
-  RoleRepository,
-} from '../../domain/repositories/role.repository.js';
+import { InMemoryRealmRepository } from '../../../realms/testing/in-memory-realm.repository.js';
+import { aRealm } from '../../../realms/testing/realm.fixture.js';
+import { InMemoryUserRepository } from '../../../users/testing/in-memory-user.repository.js';
+import { InMemoryRoleRepository } from '../../testing/in-memory-role.repository.js';
 import { AdminAuthorizer } from './admin-authorizer.js';
-
-class FakeRoleRepository extends RoleRepository {
-  readonly members = new Set<string>();
-
-  findByName(): Promise<Role | null> {
-    return Promise.resolve(null);
-  }
-
-  create(_data: CreateRoleData): Promise<Role> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  assign(_assignment: RoleAssignment): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  list(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  listForUser(): Promise<Role[]> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  delete(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  unassign(): Promise<void> {
-    return Promise.reject(new Error('not used'));
-  }
-
-  countMembers(): Promise<number> {
-    return Promise.resolve(0);
-  }
-
-  countEnabledMembers(realmName: string, roleName: string): Promise<number> {
-    return Promise.resolve(
-      [...this.members].filter((member) => {
-        const [realm, , role] = member.split('/');
-        return realm === realmName && role === roleName;
-      }).length,
-    );
-  }
-
-  isUserInRole(
-    realmName: string,
-    userId: string,
-    roleName: string,
-  ): Promise<boolean> {
-    return Promise.resolve(
-      this.members.has(`${realmName}/${userId}/${roleName}`),
-    );
-  }
-}
+import { AdminRoleProvisioner } from './admin-role-provisioner.js';
 
 const principal = (realm: string, subject: string): Principal => ({
   realm,
@@ -70,73 +14,131 @@ const principal = (realm: string, subject: string): Principal => ({
 });
 
 describe('AdminAuthorizer', () => {
-  const roles = new FakeRoleRepository();
-  roles.members.add('master/root/admin');
-  roles.members.add('shop/ana/admin');
-  const authorizer = new AdminAuthorizer(roles);
+  let users: InMemoryUserRepository;
+  let provisioner: AdminRoleProvisioner;
+  let authorizer: AdminAuthorizer;
+
+  async function addUser(realmName: string, username: string, admin = false) {
+    const user = await users.create({
+      realmId: `${realmName}-id`,
+      username,
+      email: `${username}@${realmName}.example`,
+      emailVerified: false,
+      passwordHash: 'hash',
+    });
+    if (admin) {
+      await provisioner.grantAdmin(`${realmName}-id`, user.id);
+    }
+    return user.id;
+  }
+
+  let root: string;
+  let bob: string;
+  let ana: string;
+  let carla: string;
+
+  beforeEach(async () => {
+    const realms = new InMemoryRealmRepository([
+      aRealm({ name: 'master' }),
+      aRealm({ name: 'shop' }),
+      aRealm({ name: 'other' }),
+    ]);
+    users = new InMemoryUserRepository();
+    const roles = new InMemoryRoleRepository(realms, users);
+    provisioner = new AdminRoleProvisioner(roles);
+    authorizer = new AdminAuthorizer(roles);
+
+    root = await addUser('master', 'root', true);
+    bob = await addUser('master', 'bob');
+    ana = await addUser('shop', 'ana', true);
+    carla = await addUser('shop', 'carla');
+  });
 
   it.each([
-    ['a master admin', principal('master', 'root'), 'shop', true],
-    ['a master admin on master', principal('master', 'root'), 'master', true],
-    ['a realm admin on its realm', principal('shop', 'ana'), 'shop', true],
+    [
+      'a master admin on another realm',
+      () => principal('master', root),
+      'shop',
+      true,
+    ],
+    [
+      'a master admin on master',
+      () => principal('master', root),
+      'master',
+      true,
+    ],
+    ['a realm admin on its realm', () => principal('shop', ana), 'shop', true],
     [
       'a realm admin on another realm',
-      principal('shop', 'ana'),
+      () => principal('shop', ana),
       'other',
       false,
     ],
-    ['a realm admin on master', principal('shop', 'ana'), 'master', false],
+    ['a realm admin on master', () => principal('shop', ana), 'master', false],
     [
       'a master user without the role',
-      principal('master', 'bob'),
+      () => principal('master', bob),
       'shop',
       false,
     ],
-    ['a realm user without the role', principal('shop', 'bob'), 'shop', false],
+    [
+      'a realm user without the role',
+      () => principal('shop', carla),
+      'shop',
+      false,
+    ],
   ])('decides for %s', async (_case, who, realmName, expected) => {
-    await expect(authorizer.canAdminister(who, realmName)).resolves.toBe(
+    await expect(authorizer.canAdminister(who(), realmName)).resolves.toBe(
       expected,
     );
   });
 
   it('treats only master admins as global admins', async () => {
     await expect(
-      authorizer.isGlobalAdmin(principal('master', 'root')),
+      authorizer.isGlobalAdmin(principal('master', root)),
     ).resolves.toBe(true);
     await expect(
-      authorizer.isGlobalAdmin(principal('shop', 'ana')),
+      authorizer.isGlobalAdmin(principal('shop', ana)),
     ).resolves.toBe(false);
     await expect(
-      authorizer.isGlobalAdmin(principal('master', 'bob')),
+      authorizer.isGlobalAdmin(principal('master', bob)),
     ).resolves.toBe(false);
   });
 
   it('checks the role in the realm of the token, never in the target realm', async () => {
-    roles.members.add('shop/root/admin');
+    await provisioner.grantAdmin('shop-id', root);
 
     await expect(
-      authorizer.canAdminister(principal('other', 'root'), 'shop'),
+      authorizer.canAdminister(principal('other', root), 'shop'),
     ).resolves.toBe(false);
   });
-});
 
-describe('AdminAuthorizer.isLastEnabledAdmin', () => {
-  it('is true only for the one remaining admin of the realm', async () => {
-    const roles = new FakeRoleRepository();
-    roles.members.add('shop/ana/admin');
-    const authorizer = new AdminAuthorizer(roles);
+  it('stops treating a disabled user as an admin', async () => {
+    await users.update(ana, { enabled: false });
 
-    await expect(authorizer.isLastEnabledAdmin('shop', 'ana')).resolves.toBe(
+    await expect(
+      authorizer.canAdminister(principal('shop', ana), 'shop'),
+    ).resolves.toBe(false);
+  });
+
+  it('tells the last enabled admin of a realm apart', async () => {
+    await expect(authorizer.isLastEnabledAdmin('shop', ana)).resolves.toBe(
       true,
     );
-    await expect(authorizer.isLastEnabledAdmin('shop', 'bob')).resolves.toBe(
+    await expect(authorizer.isLastEnabledAdmin('shop', carla)).resolves.toBe(
       false,
     );
 
-    roles.members.add('shop/carla/admin');
+    await provisioner.grantAdmin('shop-id', carla);
 
-    await expect(authorizer.isLastEnabledAdmin('shop', 'ana')).resolves.toBe(
+    await expect(authorizer.isLastEnabledAdmin('shop', ana)).resolves.toBe(
       false,
+    );
+
+    await users.update(carla, { enabled: false });
+
+    await expect(authorizer.isLastEnabledAdmin('shop', ana)).resolves.toBe(
+      true,
     );
   });
 });
