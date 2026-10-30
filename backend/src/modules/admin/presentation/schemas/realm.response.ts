@@ -10,6 +10,8 @@ export const realmResponseSchema = z.object({
   loginIdentifier: z.enum(LoginIdentifier),
   passwordMinLength: z.number().int(),
   accessTokenLifespan: z.number().int(),
+  sessionIdleTimeout: z.number().int(),
+  sessionMaxLifespan: z.number().int(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -25,6 +27,8 @@ export function toRealmResponse(realm: Realm): RealmResponse {
     loginIdentifier: realm.loginIdentifier,
     passwordMinLength: realm.passwordMinLength,
     accessTokenLifespan: realm.accessTokenLifespan,
+    sessionIdleTimeout: realm.sessionIdleTimeout,
+    sessionMaxLifespan: realm.sessionMaxLifespan,
     createdAt: realm.createdAt.toISOString(),
     updatedAt: realm.updatedAt.toISOString(),
   };

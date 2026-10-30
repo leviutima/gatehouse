@@ -86,6 +86,12 @@ describe('resolveClientCredentials', () => {
     ).toEqual({ clientId: 'billing', clientSecret: 's3cret' });
   });
 
+  it('reads a client_id without a secret as a public client', () => {
+    expect(
+      resolveClientCredentials(undefined, { ...request, client_id: 'web' }),
+    ).toEqual({ clientId: 'web', clientSecret: null });
+  });
+
   it('accepts a matching client_id alongside client_secret_basic', () => {
     expect(
       resolveClientCredentials(basic('billing', 's3cret'), {
@@ -109,12 +115,6 @@ describe('resolveClientCredentials', () => {
       'invalid_request',
     ],
     ['no credentials', undefined, {}, 'invalid_client'],
-    [
-      'a client_id without secret',
-      undefined,
-      { client_id: 'billing' },
-      'invalid_client',
-    ],
     [
       'a basic header without a colon',
       `Basic ${Buffer.from('billing').toString('base64')}`,

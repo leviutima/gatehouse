@@ -61,7 +61,10 @@ export class RealmAccessTokenVerifier extends TokenVerifier {
       subject: claims.sub,
       realm: realm.name,
       clientId: claims.client_id,
-      scopes: [],
+      scopes:
+        typeof claims.scope === 'string'
+          ? claims.scope.split(' ').filter(Boolean)
+          : [],
     };
   }
 }

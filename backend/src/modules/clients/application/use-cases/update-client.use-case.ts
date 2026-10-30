@@ -8,6 +8,8 @@ import { RealmClientFinder } from '../services/realm-client-finder.js';
 export interface UpdateClientChanges {
   name?: string;
   redirectUris?: string[];
+  postLogoutRedirectUris?: string[];
+  webOrigins?: string[];
   grantTypes?: GrantType[];
   enabled?: boolean;
 }
@@ -40,6 +42,10 @@ export class UpdateClientUseCase {
       type: client.type,
       secretHash: client.secretHash,
       redirectUris: changes.redirectUris ?? [...client.redirectUris],
+      postLogoutRedirectUris: changes.postLogoutRedirectUris ?? [
+        ...client.postLogoutRedirectUris,
+      ],
+      webOrigins: changes.webOrigins ?? [...client.webOrigins],
       grantTypes: changes.grantTypes ?? [...client.grantTypes],
     });
 

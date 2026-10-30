@@ -12,8 +12,9 @@ export interface JwtVerifyInput {
   algorithm: string;
   typ: string;
   issuer: string;
-  audience: string;
+  audience?: string;
   currentDate: Date;
+  acceptExpired?: boolean;
 }
 
 export abstract class JwtVerifier {

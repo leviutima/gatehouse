@@ -11,6 +11,8 @@ export const RealmMapper = {
       loginIdentifier: row.loginIdentifier,
       passwordMinLength: row.passwordMinLength,
       accessTokenLifespan: row.accessTokenLifespan,
+      sessionIdleTimeout: row.sessionIdleTimeout,
+      sessionMaxLifespan: row.sessionMaxLifespan,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

@@ -43,6 +43,8 @@ export class InMemoryClientRepository extends ClientRepository {
       type: current.type,
       secretHash: current.secretHash,
       redirectUris: [...current.redirectUris],
+      postLogoutRedirectUris: [...current.postLogoutRedirectUris],
+      webOrigins: [...current.webOrigins],
       grantTypes: [...current.grantTypes],
       enabled: current.enabled,
       createdAt: current.createdAt,

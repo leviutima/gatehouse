@@ -47,10 +47,10 @@ export function resolveClientCredentials(
     }
     return basic;
   }
-  if (request.client_id !== undefined && request.client_secret !== undefined) {
+  if (request.client_id !== undefined) {
     return {
       clientId: request.client_id,
-      clientSecret: request.client_secret,
+      clientSecret: request.client_secret ?? null,
     };
   }
   throw OAuthError.invalidClient();

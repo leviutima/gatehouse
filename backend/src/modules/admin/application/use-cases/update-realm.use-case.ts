@@ -47,6 +47,10 @@ export class UpdateRealmUseCase {
       displayName: displayName ?? realm.displayName,
       passwordMinLength: changes.passwordMinLength,
       accessTokenLifespan: changes.accessTokenLifespan,
+      sessionIdleTimeout:
+        changes.sessionIdleTimeout ?? realm.sessionIdleTimeout,
+      sessionMaxLifespan:
+        changes.sessionMaxLifespan ?? realm.sessionMaxLifespan,
     });
 
     return this.realms.update(realm.id, { ...changes, displayName });

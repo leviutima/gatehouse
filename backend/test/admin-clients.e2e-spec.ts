@@ -106,6 +106,8 @@ describe('Admin clients API (e2e)', () => {
       name: 'Billing',
       type: 'CONFIDENTIAL',
       redirectUris: [],
+      postLogoutRedirectUris: [],
+      webOrigins: [],
       grantTypes: ['CLIENT_CREDENTIALS'],
       enabled: true,
       secret: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
@@ -194,6 +196,24 @@ describe('Admin clients API (e2e)', () => {
       .auth(shopToken, { type: 'bearer' })
       .expect(404)
       .expect(({ body }) => expect(body.error).toBe('client_not_found'));
+  });
+
+  it('registers where the browser may return after logout', async () => {
+    await http()
+      .patch(`${clientsPath}/web`)
+      .auth(shopToken, { type: 'bearer' })
+      .send({ postLogoutRedirectUris: ['https://app.example.com/signed-out'] })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.postLogoutRedirectUris).toEqual([
+          'https://app.example.com/signed-out',
+        ]),
+      );
+    await http()
+      .patch(`${clientsPath}/web`)
+      .auth(shopToken, { type: 'bearer' })
+      .send({ postLogoutRedirectUris: ['javascript:alert(1)'] })
+      .expect(422);
   });
 
   it('updates the redirect URIs of a client', async () => {

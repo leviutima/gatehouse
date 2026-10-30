@@ -110,6 +110,8 @@ describe('Admin realms API (e2e)', () => {
         loginIdentifier: 'USERNAME_OR_EMAIL',
         passwordMinLength: 14,
         accessTokenLifespan: 600,
+        sessionIdleTimeout: 1800,
+        sessionMaxLifespan: 36000,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
@@ -293,11 +295,31 @@ describe('Admin realms API (e2e)', () => {
         .expect(({ body }) => expect(body.error).toBe('validation_failed'));
     });
 
-    it('rejects settings that break the realm rules', () => {
-      return patch(shop, tokens.shopAdmin, { accessTokenLifespan: 5 })
+    it.each([
+      ['a token lifespan below one minute', { accessTokenLifespan: 5 }],
+      [
+        'an idle timeout longer than the current max lifespan',
+        { sessionIdleTimeout: 40000 },
+      ],
+    ])('rejects %s', async (_case, changes) => {
+      await patch(shop, tokens.shopAdmin, changes)
         .expect(422)
         .expect(({ body }) =>
           expect(body.error).toBe('invalid_realm_configuration'),
+        );
+    });
+
+    it('changes the session lifespans of a realm', () => {
+      return patch(shop, tokens.shopAdmin, {
+        sessionIdleTimeout: 900,
+        sessionMaxLifespan: 7200,
+      })
+        .expect(200)
+        .expect(({ body }) =>
+          expect(body).toMatchObject({
+            sessionIdleTimeout: 900,
+            sessionMaxLifespan: 7200,
+          }),
         );
     });
 
