@@ -1,5 +1,5 @@
-import { SessionExpiredError } from '../auth/auth-session.ts'
-import type { AuthSession } from '../auth/auth-session.ts'
+import { SessionExpiredError } from '@/entities/session'
+import type { AuthSession } from '@/entities/session'
 
 export interface Realm {
   id: string

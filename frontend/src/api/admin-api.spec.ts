@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SessionExpiredError } from '../auth/auth-session.ts'
-import type { AuthSession } from '../auth/auth-session.ts'
+import { SessionExpiredError } from '@/entities/session'
+import type { AuthSession } from '@/entities/session'
 import { jsonResponse } from '@/shared/lib/oidc/testing/fixtures.ts'
 import { AdminApi, ApiError } from './admin-api.ts'
 

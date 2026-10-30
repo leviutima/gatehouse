@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminApi, ApiError } from '../api/admin-api.ts'
 import type { Realm } from '../api/admin-api.ts'
-import { SessionExpiredError } from '../auth/auth-session.ts'
+import { SessionExpiredError } from '@/entities/session'
 
 type RealmsState =
   | { kind: 'loading' }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminApi } from './api/admin-api.ts'
-import { AuthSession } from './auth/auth-session.ts'
-import type { SessionUser } from './auth/auth-session.ts'
+import { AuthSession } from '@/entities/session'
+import type { SessionUser } from '@/entities/session'
 import { RealmsPage } from './realms/RealmsPage.tsx'
 
 type AppState =

@@ -5,12 +5,9 @@ const CONSOLE_CLIENT_ID = 'admin-console'
 const CONSOLE_SCOPE = 'openid profile email'
 
 export function consoleOidcConfig(
-  gatehouseUrl: string | undefined,
+  gatehouseUrl: string,
   consoleOrigin: string,
 ): OidcConfig {
-  if (!gatehouseUrl) {
-    throw new Error('VITE_GATEHOUSE_ISSUER is not set')
-  }
   return {
     issuer: `${gatehouseUrl.replace(/\/+$/, '')}/realms/${MASTER_REALM}`,
     clientId: CONSOLE_CLIENT_ID,
