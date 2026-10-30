@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   authorizationCode,
   authorizationUrl,
@@ -8,7 +8,8 @@ import {
   verifiedIdTokenClaims,
 } from './oidc-client.ts'
 import type { OidcConfig } from './oidc-config.ts'
-import { fakeJwt, jsonResponse, providerMetadata } from './testing/fixtures.ts'
+import { fakeJwt, providerMetadata } from './testing/fixtures.ts'
+import { stubOidcHttp } from './testing/stub-oidc-http.ts'
 
 const config: OidcConfig = {
   issuer: 'http://id.test/realms/master',
@@ -19,21 +20,39 @@ const config: OidcConfig = {
 }
 const transaction = { state: 'state-1', nonce: 'nonce-1', codeVerifier: 'v-1' }
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
 describe('fetchProviderMetadata', () => {
-  it('rejects a document published for another issuer', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({ ...providerMetadata, issuer: 'http://evil.test' }),
-      ),
+  it('returns the document of the configured issuer', async () => {
+    stubOidcHttp(() => ({ status: 200, data: providerMetadata }))
+
+    await expect(fetchProviderMetadata(config)).resolves.toEqual(
+      providerMetadata,
     )
+  })
+
+  it('rejects a document published for another issuer', async () => {
+    stubOidcHttp(() => ({
+      status: 200,
+      data: { ...providerMetadata, issuer: 'http://evil.test' },
+    }))
 
     await expect(fetchProviderMetadata(config)).rejects.toMatchObject({
       code: 'issuer_mismatch',
+    })
+  })
+
+  it('rejects a document without the endpoints it needs', async () => {
+    stubOidcHttp(() => ({ status: 200, data: { issuer: config.issuer } }))
+
+    await expect(fetchProviderMetadata(config)).rejects.toMatchObject({
+      code: 'invalid_response',
+    })
+  })
+
+  it('reports an unavailable document', async () => {
+    stubOidcHttp(() => ({ status: 404 }))
+
+    await expect(fetchProviderMetadata(config)).rejects.toMatchObject({
+      code: 'discovery_failed',
     })
   })
 })
@@ -106,15 +125,22 @@ describe('authorizationCode', () => {
 
 describe('exchangeCode', () => {
   it('sends the code with its verifier and no client secret', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        access_token: 'access',
-        expires_in: 300,
-        id_token: 'id',
-        refresh_token: 'refresh',
-      }),
-    )
-    vi.stubGlobal('fetch', fetchMock)
+    const requests: { url?: string; body: URLSearchParams }[] = []
+    stubOidcHttp((request) => {
+      requests.push({
+        url: request.url,
+        body: new URLSearchParams(request.data as string),
+      })
+      return {
+        status: 200,
+        data: {
+          access_token: 'access',
+          expires_in: 300,
+          id_token: 'id',
+          refresh_token: 'refresh',
+        },
+      }
+    })
 
     const tokens = await exchangeCode(
       providerMetadata,
@@ -123,9 +149,8 @@ describe('exchangeCode', () => {
       'v-1',
     )
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe(providerMetadata.token_endpoint)
-    expect(Object.fromEntries(init.body as URLSearchParams)).toEqual({
+    expect(requests[0].url).toBe(providerMetadata.token_endpoint)
+    expect(Object.fromEntries(requests[0].body)).toEqual({
       grant_type: 'authorization_code',
       client_id: 'admin-console',
       redirect_uri: 'http://console.test/callback',
@@ -141,16 +166,27 @@ describe('exchangeCode', () => {
   })
 
   it('surfaces the OAuth error of a refused request', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(jsonResponse({ error: 'invalid_grant' }, 400)),
-    )
+    stubOidcHttp(() => ({ status: 400, data: { error: 'invalid_grant' } }))
 
     await expect(
       exchangeCode(providerMetadata, config, 'code-1', 'v-1'),
     ).rejects.toMatchObject({ code: 'invalid_grant' })
+  })
+
+  it('reports a refusal that is not an OAuth error', async () => {
+    stubOidcHttp(() => ({ status: 502, data: '<html></html>' }))
+
+    await expect(
+      exchangeCode(providerMetadata, config, 'code-1', 'v-1'),
+    ).rejects.toMatchObject({ code: 'token_request_failed' })
+  })
+
+  it('rejects a response without an access token', async () => {
+    stubOidcHttp(() => ({ status: 200, data: { expires_in: 300 } }))
+
+    await expect(
+      exchangeCode(providerMetadata, config, 'code-1', 'v-1'),
+    ).rejects.toMatchObject({ code: 'invalid_response' })
   })
 })
 
@@ -183,7 +219,11 @@ describe('verifiedIdTokenClaims', () => {
     ).toThrow(expect.objectContaining({ code: 'invalid_id_token' }))
   })
 
-  it.each([[null], ['not-a-jwt']])('rejects the token %s', (token) => {
+  it.each([
+    [null],
+    ['not-a-jwt'],
+    [fakeJwt({ iss: config.issuer, aud: 42, sub: 'user-1' })],
+  ])('rejects the token %s', (token) => {
     expect(() => verifiedIdTokenClaims(token, config, 'nonce-1')).toThrow(
       expect.objectContaining({ code: 'invalid_id_token' }),
     )

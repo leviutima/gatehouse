@@ -1,39 +1,46 @@
+import { isAxiosError } from 'axios'
+import { z } from 'zod'
 import type { LoginTransaction } from './login-transaction.ts'
 import type { OidcConfig } from './oidc-config.ts'
+import { oidcHttp } from './oidc-http.ts'
 
-export interface ProviderMetadata {
-  issuer: string
-  authorization_endpoint: string
-  token_endpoint: string
-  end_session_endpoint: string
-}
+const providerMetadataSchema = z.object({
+  issuer: z.string(),
+  authorization_endpoint: z.url(),
+  token_endpoint: z.url(),
+  end_session_endpoint: z.url(),
+})
+
+const tokenResponseSchema = z.object({
+  access_token: z.string().min(1),
+  expires_in: z.number().int().positive(),
+  id_token: z.string().optional(),
+  refresh_token: z.string().optional(),
+})
+
+const oauthErrorSchema = z.object({
+  error: z.string(),
+  error_description: z.string().optional(),
+})
+
+const idTokenClaimsSchema = z.object({
+  iss: z.string(),
+  aud: z.union([z.string(), z.array(z.string())]),
+  sub: z.string(),
+  nonce: z.string().optional(),
+  preferred_username: z.string().optional(),
+  email: z.string().optional(),
+})
+
+export type ProviderMetadata = z.infer<typeof providerMetadataSchema>
+
+export type IdTokenClaims = z.infer<typeof idTokenClaimsSchema>
 
 export interface TokenSet {
   accessToken: string
   idToken: string | null
   refreshToken: string | null
   expiresInSeconds: number
-}
-
-export interface IdTokenClaims {
-  iss: string
-  aud: string | string[]
-  sub: string
-  nonce?: string
-  preferred_username?: string
-  email?: string
-}
-
-interface TokenResponse {
-  access_token: string
-  expires_in: number
-  id_token?: string
-  refresh_token?: string
-}
-
-interface OAuthErrorResponse {
-  error?: string
-  error_description?: string
 }
 
 export class OidcError extends Error {
@@ -49,23 +56,31 @@ export class OidcError extends Error {
 export async function fetchProviderMetadata(
   config: OidcConfig,
 ): Promise<ProviderMetadata> {
-  const response = await fetch(
-    `${config.issuer}/.well-known/openid-configuration`,
-  )
-  if (!response.ok) {
+  const response = await oidcHttp
+    .get<unknown>(`${config.issuer}/.well-known/openid-configuration`)
+    .catch((error: unknown) => {
+      if (isAxiosError(error) && error.response) {
+        throw new OidcError(
+          'discovery_failed',
+          `Could not read the provider configuration (HTTP ${error.response.status})`,
+        )
+      }
+      throw error
+    })
+  const metadata = providerMetadataSchema.safeParse(response.data)
+  if (!metadata.success) {
     throw new OidcError(
-      'discovery_failed',
-      `Could not read the provider configuration (HTTP ${response.status})`,
+      'invalid_response',
+      'The provider configuration is not valid',
     )
   }
-  const metadata = (await response.json()) as ProviderMetadata
-  if (metadata.issuer !== config.issuer) {
+  if (metadata.data.issuer !== config.issuer) {
     throw new OidcError(
       'issuer_mismatch',
       'The provider configuration belongs to a different issuer',
     )
   }
-  return metadata
+  return metadata.data
 }
 
 export function authorizationUrl(
@@ -183,35 +198,49 @@ async function requestTokens(
   metadata: ProviderMetadata,
   body: Record<string, string>,
 ): Promise<TokenSet> {
-  const response = await fetch(metadata.token_endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(body),
-  })
-  if (!response.ok) {
-    const failure = (await response
-      .json()
-      .catch(() => ({}))) as OAuthErrorResponse
-    throw new OidcError(
-      failure.error ?? 'token_request_failed',
-      failure.error_description ??
-        `The token request failed (HTTP ${response.status})`,
-    )
+  const response = await oidcHttp
+    .post<unknown>(metadata.token_endpoint, new URLSearchParams(body), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+    .catch((error: unknown) => {
+      if (isAxiosError(error) && error.response) {
+        throw tokenRequestError(error.response.status, error.response.data)
+      }
+      throw error
+    })
+  const tokens = tokenResponseSchema.safeParse(response.data)
+  if (!tokens.success) {
+    throw new OidcError('invalid_response', 'The token response is not valid')
   }
-  const tokens = (await response.json()) as TokenResponse
   return {
-    accessToken: tokens.access_token,
-    idToken: tokens.id_token ?? null,
-    refreshToken: tokens.refresh_token ?? null,
-    expiresInSeconds: tokens.expires_in,
+    accessToken: tokens.data.access_token,
+    idToken: tokens.data.id_token ?? null,
+    refreshToken: tokens.data.refresh_token ?? null,
+    expiresInSeconds: tokens.data.expires_in,
   }
+}
+
+function tokenRequestError(status: number, data: unknown): OidcError {
+  const failure = oauthErrorSchema.safeParse(data)
+  return failure.success
+    ? new OidcError(
+        failure.data.error,
+        failure.data.error_description ??
+          `The token request failed (HTTP ${status})`,
+      )
+    : new OidcError(
+        'token_request_failed',
+        `The token request failed (HTTP ${status})`,
+      )
 }
 
 function decodeJwtPayload(jwt: string): IdTokenClaims {
   try {
     const payload = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
     const bytes = Uint8Array.from(atob(payload), (char) => char.charCodeAt(0))
-    return JSON.parse(new TextDecoder().decode(bytes)) as IdTokenClaims
+    return idTokenClaimsSchema.parse(
+      JSON.parse(new TextDecoder().decode(bytes)),
+    )
   } catch {
     throw new OidcError('invalid_id_token', 'The ID token could not be read')
   }

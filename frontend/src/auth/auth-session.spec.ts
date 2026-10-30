@@ -1,10 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FakeResponse } from '@/shared/api/testing/fake-adapter.ts'
+import { saveLoginTransaction } from '@/shared/lib/oidc'
+import { fakeJwt, providerMetadata } from '@/shared/lib/oidc/testing/fixtures.ts'
+import { memoryStorage } from '@/shared/lib/oidc/testing/memory-storage.ts'
+import { stubOidcHttp } from '@/shared/lib/oidc/testing/stub-oidc-http.ts'
 import { AuthSession, SessionExpiredError } from './auth-session.ts'
 import type { AuthBrowser } from './auth-session.ts'
-import { saveLoginTransaction } from '@/shared/lib/oidc'
 import { consoleOidcConfig } from './oidc-config.ts'
-import { fakeJwt, jsonResponse, providerMetadata } from '@/shared/lib/oidc/testing/fixtures.ts'
-import { memoryStorage } from '@/shared/lib/oidc/testing/memory-storage.ts'
 
 const config = consoleOidcConfig('http://id.test', 'http://console.test')
 const transaction = { state: 'state-1', nonce: 'nonce-1', codeVerifier: 'v-1' }
@@ -35,44 +37,44 @@ function fakeBrowser(pathname: string, search = '') {
   }
 }
 
-function tokenResponse(name: string) {
-  return jsonResponse({
-    access_token: `access-${name}`,
-    refresh_token: `refresh-${name}`,
+function tokenResponse(name: string): FakeResponse {
+  return {
+    status: 200,
+    data: {
+      access_token: `access-${name}`,
+      refresh_token: `refresh-${name}`,
+      expires_in: 300,
+    },
+  }
+}
+
+const loginTokens: FakeResponse = {
+  status: 200,
+  data: {
+    access_token: 'access-1',
+    refresh_token: 'refresh-1',
+    id_token: idToken,
     expires_in: 300,
-  })
+  },
 }
 
 describe('AuthSession', () => {
-  const tokenEndpoint = vi.fn<(init?: RequestInit) => Promise<Response>>()
+  const tokenEndpoint =
+    vi.fn<(body: URLSearchParams) => Promise<FakeResponse>>()
 
   beforeEach(() => {
     tokenEndpoint.mockReset()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string, init?: RequestInit) =>
-        url === providerMetadata.token_endpoint
-          ? tokenEndpoint(init)
-          : Promise.resolve(jsonResponse(providerMetadata)),
-      ),
+    stubOidcHttp((request) =>
+      request.url === providerMetadata.token_endpoint
+        ? tokenEndpoint(new URLSearchParams(request.data as string))
+        : { status: 200, data: providerMetadata },
     )
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
   })
 
   async function signedInSession() {
     const browser = fakeBrowser('/callback', callbackSearch)
     saveLoginTransaction(browser.storage, transaction)
-    tokenEndpoint.mockResolvedValueOnce(
-      jsonResponse({
-        access_token: 'access-1',
-        refresh_token: 'refresh-1',
-        id_token: idToken,
-        expires_in: 300,
-      }),
-    )
+    tokenEndpoint.mockResolvedValueOnce(loginTokens)
     const session = new AuthSession(config, browser)
     await session.start()
     return { browser, session }
@@ -95,14 +97,7 @@ describe('AuthSession', () => {
   it('exchanges the callback code once even if started twice', async () => {
     const browser = fakeBrowser('/callback', callbackSearch)
     saveLoginTransaction(browser.storage, transaction)
-    tokenEndpoint.mockResolvedValueOnce(
-      jsonResponse({
-        access_token: 'access-1',
-        refresh_token: 'refresh-1',
-        id_token: idToken,
-        expires_in: 300,
-      }),
-    )
+    tokenEndpoint.mockResolvedValueOnce(loginTokens)
     const session = new AuthSession(config, browser)
 
     const [first, second] = await Promise.all([session.start(), session.start()])
@@ -144,8 +139,9 @@ describe('AuthSession', () => {
     browser.advance(280_000)
     await expect(session.validAccessToken()).resolves.toBe('access-3')
 
-    const lastBody = tokenEndpoint.mock.calls[2][0]?.body as URLSearchParams
-    expect(lastBody.get('refresh_token')).toBe('refresh-2')
+    expect(tokenEndpoint.mock.calls[2][0].get('refresh_token')).toBe(
+      'refresh-2',
+    )
   })
 
   it('shares one refresh between concurrent callers', async () => {
@@ -165,9 +161,10 @@ describe('AuthSession', () => {
 
   it('reports an expired session when the refresh token is refused', async () => {
     const { browser, session } = await signedInSession()
-    tokenEndpoint.mockResolvedValueOnce(
-      jsonResponse({ error: 'invalid_grant' }, 400),
-    )
+    tokenEndpoint.mockResolvedValueOnce({
+      status: 400,
+      data: { error: 'invalid_grant' },
+    })
     browser.advance(280_000)
 
     await expect(session.validAccessToken()).rejects.toBeInstanceOf(
