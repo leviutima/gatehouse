@@ -56,6 +56,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_GATEHOUSE_ISSUER: ${GATEHOUSE_ISSUER:-http://localhost:9000}
     ports:
       - "8080:8080"
     restart: unless-stopped

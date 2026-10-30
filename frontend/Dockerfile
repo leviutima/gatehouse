@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+ARG VITE_GATEHOUSE_ISSUER
+RUN : "${VITE_GATEHOUSE_ISSUER:?set the VITE_GATEHOUSE_ISSUER build arg}" && npm run build
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
