@@ -1,3 +1,14 @@
+import {
+  Alert,
+  Badge,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@leviutima/ds'
 import { useRealmsQuery } from '@/entities/realm'
 import { SessionExpiredError } from '@/entities/session'
 import { hasHttpStatus } from '@/shared/api'
@@ -6,46 +17,50 @@ export function RealmsTable() {
   const { data, error, isFetching, refetch } = useRealmsQuery()
 
   if (isFetching || error instanceof SessionExpiredError) {
-    return <p className="muted">Loading realms…</p>
+    return <p className="text-muted-foreground">Loading realms…</p>
   }
   if (hasHttpStatus(error, 403)) {
     return (
-      <p role="alert">
+      <Alert tone="error">
         This account is not an administrator of the master realm, so it cannot
         list realms.
-      </p>
+      </Alert>
     )
   }
   if (!data) {
     return (
-      <div role="alert">
-        <p>The realms could not be loaded.</p>
-        <button type="button" onClick={() => void refetch()}>
+      <div className="flex flex-col items-start gap-4">
+        <Alert tone="error" className="w-full">
+          The realms could not be loaded.
+        </Alert>
+        <Button variant="secondary" onClick={() => void refetch()}>
           Try again
-        </button>
+        </Button>
       </div>
     )
   }
   return (
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Display name</th>
-          <th scope="col">Status</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Display name</TableHead>
+          <TableHead>Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {data.map((realm) => (
-          <tr key={realm.id}>
-            <td>
-              <code>{realm.name}</code>
-            </td>
-            <td>{realm.displayName}</td>
-            <td>{realm.enabled ? 'Enabled' : 'Disabled'}</td>
-          </tr>
+          <TableRow key={realm.id}>
+            <TableCell className="font-mono">{realm.name}</TableCell>
+            <TableCell>{realm.displayName}</TableCell>
+            <TableCell>
+              <Badge variant={realm.enabled ? 'solid' : 'outline'}>
+                {realm.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }

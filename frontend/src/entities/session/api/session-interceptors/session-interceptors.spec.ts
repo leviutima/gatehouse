@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { hasHttpStatus } from '@/shared/api'
 import { fakeAdapter } from '@/shared/api/testing/fake-adapter.ts'
 import type { FakeResponse } from '@/shared/api/testing/fake-adapter.ts'
-import { SessionExpiredError } from '../model/auth-session.ts'
-import type { AuthSession } from '../model/auth-session.ts'
+import { SessionExpiredError } from '../../model/auth-session/auth-session.ts'
+import type { AuthSession } from '../../model/auth-session/auth-session.ts'
 import { installSessionInterceptors } from './session-interceptors.ts'
 
 const realms = [{ name: 'master' }]

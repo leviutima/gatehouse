@@ -1,4 +1,4 @@
-import type { TransactionStorage } from '../login-transaction.ts'
+import type { TransactionStorage } from '../login-transaction/login-transaction.ts'
 
 export function memoryStorage(): TransactionStorage {
   const items = new Map<string, string>()

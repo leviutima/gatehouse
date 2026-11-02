@@ -47,6 +47,7 @@ src/
 - Cada slice expõe um `index.ts`, e o restante do código só importa por ele.
 - Uma camada só importa das camadas abaixo dela.
 - O alias `@/` aponta para `src/`, configurado no Vite e no TypeScript.
+- Nos segmentos `api`, `config`, `model` e `lib`, cada unidade tem uma pasta própria com o código e a spec, como `entities/session/api/session-interceptors/`. Essas pastas não têm `index.ts`. O `testing/` fica no nível do segmento porque é compartilhado, e o `ui` continua sem subpastas até ter testes.
 - O Steiger, linter oficial do FSD, entra no `npm run lint`, e assim também no CI, com duas exceções:
   - `fsd/insignificant-slice` fica desligada, porque com poucas telas cada slice tem um único consumidor e a regra pediria para fundir tudo. Vale reavaliar quando o console crescer.
   - `fsd/no-public-api-sidestep` fica desligada só em `*.spec.ts` e `testing/`, porque helpers de teste não fazem parte da API pública.
@@ -76,6 +77,12 @@ Valida tudo que vem de fora:
 
 - A lista de realms vira `useRealmsQuery`, substituindo o `useEffect` e o estado manual.
 - No `QueryClient`, `retry` e `refetchOnWindowFocus` ficam desligados, para manter o comportamento atual. O botão "Try again" chama `refetch`.
+
+### Tailwind
+
+- Tailwind v4 pelo plugin do Vite, sem arquivo de configuração. O `max-width` das telas soma o padding por causa do `border-box`.
+- Tema e componentes vêm do design system `@leviutima/ds`, importado em `app/styles/index.css`. O console não define cores nem fontes próprias.
+- A tela de login é renderizada pelo backend e ainda não usa o design system.
 
 ## Fluxo de dados
 
