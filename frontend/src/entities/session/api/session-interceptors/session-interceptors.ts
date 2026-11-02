@@ -1,8 +1,8 @@
 import axios, { isAxiosError } from 'axios'
 import type { AxiosInstance, AxiosResponse } from 'axios'
 import { hasHttpStatus } from '@/shared/api'
-import { SessionExpiredError } from '../model/auth-session/auth-session.ts'
-import type { AuthSession } from '../model/auth-session/auth-session.ts'
+import { SessionExpiredError } from '../../model/auth-session/auth-session.ts'
+import type { AuthSession } from '../../model/auth-session/auth-session.ts'
 
 export function installSessionInterceptors(
   http: AxiosInstance,
