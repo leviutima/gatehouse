@@ -1,58 +1,66 @@
+import {
+  Alert,
+  Badge,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@leviutima/ds'
 import { useRealmsQuery } from '@/entities/realm'
 import { SessionExpiredError } from '@/entities/session'
 import { hasHttpStatus } from '@/shared/api'
-import { Button } from '@/shared/ui'
-
-const CELL = 'border-b border-line px-4 py-[0.6rem] text-left'
 
 export function RealmsTable() {
   const { data, error, isFetching, refetch } = useRealmsQuery()
 
   if (isFetching || error instanceof SessionExpiredError) {
-    return <p className="my-4 text-muted">Loading realms…</p>
+    return <p className="text-muted-foreground">Loading realms…</p>
   }
   if (hasHttpStatus(error, 403)) {
     return (
-      <p role="alert" className="my-4">
+      <Alert tone="error">
         This account is not an administrator of the master realm, so it cannot
         list realms.
-      </p>
+      </Alert>
     )
   }
   if (!data) {
     return (
-      <div role="alert">
-        <p className="my-4">The realms could not be loaded.</p>
-        <Button onClick={() => void refetch()}>Try again</Button>
+      <div className="flex flex-col items-start gap-4">
+        <Alert tone="error" className="w-full">
+          The realms could not be loaded.
+        </Alert>
+        <Button variant="secondary" onClick={() => void refetch()}>
+          Try again
+        </Button>
       </div>
     )
   }
   return (
-    <table className="w-full border border-line bg-card">
-      <thead>
-        <tr>
-          <th scope="col" className={`${CELL} text-sm text-muted`}>
-            Name
-          </th>
-          <th scope="col" className={`${CELL} text-sm text-muted`}>
-            Display name
-          </th>
-          <th scope="col" className={`${CELL} text-sm text-muted`}>
-            Status
-          </th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Display name</TableHead>
+          <TableHead>Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {data.map((realm) => (
-          <tr key={realm.id} className="last:[&>td]:border-b-0">
-            <td className={CELL}>
-              <code>{realm.name}</code>
-            </td>
-            <td className={CELL}>{realm.displayName}</td>
-            <td className={CELL}>{realm.enabled ? 'Enabled' : 'Disabled'}</td>
-          </tr>
+          <TableRow key={realm.id}>
+            <TableCell className="font-mono">{realm.name}</TableCell>
+            <TableCell>{realm.displayName}</TableCell>
+            <TableCell>
+              <Badge variant={realm.enabled ? 'solid' : 'outline'}>
+                {realm.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }
