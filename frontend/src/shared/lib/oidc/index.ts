@@ -16,10 +16,10 @@ export {
   OidcError,
   refreshTokens,
   verifiedIdTokenClaims,
-} from './oidc-client.ts'
+} from './oidc-client/oidc-client.ts'
 export type {
   IdTokenClaims,
   ProviderMetadata,
   TokenSet,
-} from './oidc-client.ts'
+} from './oidc-client/oidc-client.ts'
 export type { OidcConfig } from './oidc-config/oidc-config.ts'

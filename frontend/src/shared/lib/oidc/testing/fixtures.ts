@@ -1,4 +1,4 @@
-import type { ProviderMetadata } from '../oidc-client.ts'
+import type { ProviderMetadata } from '../oidc-client/oidc-client.ts'
 
 const ENDPOINTS = 'http://id.test/realms/master/protocol/openid-connect'
 
