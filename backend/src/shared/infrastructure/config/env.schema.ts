@@ -23,6 +23,7 @@ export const envSchema = z
     GATEHOUSE_ADMIN_USERNAME: z.string().trim().min(1).optional(),
     GATEHOUSE_ADMIN_EMAIL: z.email().optional(),
     GATEHOUSE_ADMIN_PASSWORD: z.string().min(1).optional(),
+    GATEHOUSE_ADMIN_CONSOLE_URL: z.url({ protocol: /^https?$/ }).optional(),
   })
   .superRefine((env, ctx) => {
     const missing = ADMIN_KEYS.filter((key) => env[key] === undefined);

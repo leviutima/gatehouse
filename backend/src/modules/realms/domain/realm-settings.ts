@@ -6,12 +6,19 @@ const DISPLAY_NAME_MAX_LENGTH = 100;
 const PASSWORD_MIN_LENGTH_FLOOR = 8;
 const ACCESS_TOKEN_LIFESPAN_MIN = 60;
 const ACCESS_TOKEN_LIFESPAN_MAX = 24 * 60 * 60;
+const SESSION_LIFESPAN_MIN = 5 * 60;
+const SESSION_LIFESPAN_MAX = 30 * 24 * 60 * 60;
+
+export const DEFAULT_SESSION_IDLE_TIMEOUT = 30 * 60;
+export const DEFAULT_SESSION_MAX_LIFESPAN = 10 * 60 * 60;
 
 export interface RealmSettings {
   name: string;
   displayName: string;
   passwordMinLength?: number;
   accessTokenLifespan?: number;
+  sessionIdleTimeout?: number;
+  sessionMaxLifespan?: number;
 }
 
 export function assertValidRealmSettings({
@@ -19,6 +26,8 @@ export function assertValidRealmSettings({
   displayName,
   passwordMinLength,
   accessTokenLifespan,
+  sessionIdleTimeout,
+  sessionMaxLifespan,
 }: RealmSettings): void {
   if (!REALM_NAME_PATTERN.test(name)) {
     throw new InvalidRealmConfigurationError(
@@ -53,6 +62,28 @@ export function assertValidRealmSettings({
   ) {
     throw new InvalidRealmConfigurationError(
       `Access token lifespan must be between ${ACCESS_TOKEN_LIFESPAN_MIN} and ${ACCESS_TOKEN_LIFESPAN_MAX} seconds`,
+    );
+  }
+  for (const [label, value] of [
+    ['Session idle timeout', sessionIdleTimeout],
+    ['Session max lifespan', sessionMaxLifespan],
+  ] as const) {
+    if (
+      value !== undefined &&
+      !isIntegerBetween(value, SESSION_LIFESPAN_MIN, SESSION_LIFESPAN_MAX)
+    ) {
+      throw new InvalidRealmConfigurationError(
+        `${label} must be between ${SESSION_LIFESPAN_MIN} and ${SESSION_LIFESPAN_MAX} seconds`,
+      );
+    }
+  }
+  if (
+    sessionIdleTimeout !== undefined &&
+    sessionMaxLifespan !== undefined &&
+    sessionIdleTimeout > sessionMaxLifespan
+  ) {
+    throw new InvalidRealmConfigurationError(
+      'Session idle timeout cannot exceed the session max lifespan',
     );
   }
 }

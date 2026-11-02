@@ -91,4 +91,21 @@ describe('AccessTokenIssuer', () => {
       jti: 'token-id-1',
     });
   });
+
+  it('carries the scope and the session of a user token', async () => {
+    const { token } = await issuer.issue({
+      realm,
+      subject: 'user-1',
+      clientId: 'web',
+      scope: 'openid email',
+      sessionId: 'session-1',
+    });
+
+    const { payload } = await verify(token);
+    expect(payload).toMatchObject({
+      sub: 'user-1',
+      scope: 'openid email',
+      sid: 'session-1',
+    });
+  });
 });

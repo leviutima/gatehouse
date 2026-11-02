@@ -3,7 +3,10 @@ import { ClientType } from '../../domain/client-type.js';
 import { Client, ClientProps } from '../../domain/entities/client.entity.js';
 import { GrantType } from '../../domain/grant-type.js';
 import { InMemoryClientRepository } from '../../testing/in-memory-client.repository.js';
-import { ClientAuthenticator } from './client-authenticator.js';
+import {
+  ClientAuthenticator,
+  ClientCredentials,
+} from './client-authenticator.js';
 
 const now = new Date('2026-10-27T00:00:00Z');
 
@@ -32,7 +35,10 @@ function authenticator(...clients: Client[]): ClientAuthenticator {
 }
 
 describe('ClientAuthenticator', () => {
-  const credentials = { clientId: 'billing', clientSecret: 'right-secret' };
+  const credentials: ClientCredentials = {
+    clientId: 'billing',
+    clientSecret: 'right-secret',
+  };
 
   it('returns the client when the secret matches', async () => {
     const billing = client();
@@ -42,7 +48,7 @@ describe('ClientAuthenticator', () => {
     ).resolves.toBe(billing);
   });
 
-  it.each<[string, Client[], typeof credentials, string]>([
+  it.each<[string, Client[], ClientCredentials, string]>([
     ['an unknown client', [], credentials, 'realm-1'],
     [
       'a wrong secret',
@@ -53,7 +59,7 @@ describe('ClientAuthenticator', () => {
     ['a client of another realm', [client()], credentials, 'realm-2'],
     ['a disabled client', [client({ enabled: false })], credentials, 'realm-1'],
     [
-      'a public client',
+      'a public client presenting a secret',
       [
         client({
           type: ClientType.PUBLIC,
@@ -65,9 +71,32 @@ describe('ClientAuthenticator', () => {
       credentials,
       'realm-1',
     ],
+    [
+      'a confidential client without a secret',
+      [client()],
+      { ...credentials, clientSecret: null },
+      'realm-1',
+    ],
   ])('rejects %s', async (_case, clients, attempt, realmId) => {
     await expect(
       authenticator(...clients).authenticate(realmId, attempt),
     ).resolves.toBeNull();
+  });
+
+  it('identifies a public client by its id alone', async () => {
+    const web = client({
+      clientId: 'web',
+      type: ClientType.PUBLIC,
+      secretHash: null,
+      redirectUris: ['https://app.example.com/callback'],
+      grantTypes: [GrantType.AUTHORIZATION_CODE],
+    });
+
+    await expect(
+      authenticator(web).authenticate('realm-1', {
+        clientId: 'web',
+        clientSecret: null,
+      }),
+    ).resolves.toBe(web);
   });
 });

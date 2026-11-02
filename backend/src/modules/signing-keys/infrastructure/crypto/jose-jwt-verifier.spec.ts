@@ -106,6 +106,24 @@ describe('JoseJwtVerifier', () => {
     await expect(verify(token)).resolves.toBeNull();
   });
 
+  it('accepts an expired token only when asked to', async () => {
+    const token = await sign({ ...validClaims(), exp: nowSeconds - 3600 });
+
+    await expect(verify(token, { acceptExpired: true })).resolves.toMatchObject(
+      { sub: 'client-1' },
+    );
+    await expect(verify(token)).resolves.toBeNull();
+  });
+
+  it('still checks the signature of an expired token it accepts', async () => {
+    const other = await generator.generate();
+    const token = await sign({ ...validClaims(), exp: nowSeconds - 3600 });
+
+    await expect(
+      verify(token, { acceptExpired: true, publicJwk: other.publicJwk }),
+    ).resolves.toBeNull();
+  });
+
   it('rejects a token without exp', async () => {
     const { exp: _exp, ...claims } = validClaims();
     const token = await sign(claims);

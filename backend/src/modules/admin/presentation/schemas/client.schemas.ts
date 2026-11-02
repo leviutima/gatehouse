@@ -8,6 +8,11 @@ export const createClientSchema = z.object({
   name: z.string().meta({ example: 'Billing service' }),
   type: z.enum(ClientType),
   redirectUris: z.array(z.string()).default([]),
+  postLogoutRedirectUris: z.array(z.string()).default([]),
+  webOrigins: z.array(z.string()).default([]).meta({
+    description:
+      'Browser origins allowed to call the token, userinfo and admin endpoints (CORS)',
+  }),
   grantTypes: z.array(z.enum(GrantType)),
 });
 
@@ -17,6 +22,8 @@ export const updateClientSchema = z
   .strictObject({
     name: z.string(),
     redirectUris: z.array(z.string()),
+    postLogoutRedirectUris: z.array(z.string()),
+    webOrigins: z.array(z.string()),
     grantTypes: z.array(z.enum(GrantType)),
     enabled: z.boolean(),
   })
@@ -33,6 +40,8 @@ export const clientResponseSchema = z.object({
   name: z.string(),
   type: z.enum(ClientType),
   redirectUris: z.array(z.string()),
+  postLogoutRedirectUris: z.array(z.string()),
+  webOrigins: z.array(z.string()),
   grantTypes: z.array(z.enum(GrantType)),
   enabled: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -63,6 +72,8 @@ export function toClientResponse(client: Client): ClientResponse {
     name: client.name,
     type: client.type,
     redirectUris: [...client.redirectUris],
+    postLogoutRedirectUris: [...client.postLogoutRedirectUris],
+    webOrigins: [...client.webOrigins],
     grantTypes: [...client.grantTypes],
     enabled: client.enabled,
     createdAt: client.createdAt.toISOString(),

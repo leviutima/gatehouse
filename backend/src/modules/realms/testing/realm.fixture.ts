@@ -12,6 +12,8 @@ export function aRealm(overrides: Partial<RealmProps> = {}): Realm {
     loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
     passwordMinLength: 12,
     accessTokenLifespan: 300,
+    sessionIdleTimeout: 1800,
+    sessionMaxLifespan: 36000,
     createdAt: TEST_NOW,
     updatedAt: TEST_NOW,
     ...overrides,

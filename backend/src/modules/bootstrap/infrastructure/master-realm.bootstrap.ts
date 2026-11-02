@@ -5,6 +5,7 @@ import {
   BootstrapMasterRealmUseCase,
   InitialAdmin,
 } from '../application/use-cases/bootstrap-master-realm.use-case.js';
+import { EnsureAdminConsoleClientUseCase } from '../application/use-cases/ensure-admin-console-client.use-case.js';
 
 @Injectable()
 export class MasterRealmBootstrap implements OnApplicationBootstrap {
@@ -12,6 +13,7 @@ export class MasterRealmBootstrap implements OnApplicationBootstrap {
 
   constructor(
     private readonly bootstrapMasterRealm: BootstrapMasterRealmUseCase,
+    private readonly ensureAdminConsoleClient: EnsureAdminConsoleClientUseCase,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -26,6 +28,16 @@ export class MasterRealmBootstrap implements OnApplicationBootstrap {
       this.logger.warn(
         `Master realm had no admin; granted the admin role to "${result.admin.username}"`,
       );
+    }
+
+    const consoleUrl = this.config.get('GATEHOUSE_ADMIN_CONSOLE_URL', {
+      infer: true,
+    });
+    if (
+      consoleUrl &&
+      (await this.ensureAdminConsoleClient.execute(consoleUrl)) === 'created'
+    ) {
+      this.logger.log(`Created the admin console client for ${consoleUrl}`);
     }
   }
 

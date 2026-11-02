@@ -102,6 +102,12 @@ describe('RealmAccessTokenVerifier', () => {
     });
   });
 
+  it('reads the granted scopes of a user token', async () => {
+    await expect(
+      verifier.verify(await sign({ ...validClaims(), scope: 'openid email' })),
+    ).resolves.toMatchObject({ scopes: ['openid', 'email'] });
+  });
+
   it('accepts a token signed by a passive key of the realm', async () => {
     await addKey('key-0', 'shop-id', SigningKeyStatus.PASSIVE);
 
