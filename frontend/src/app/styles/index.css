@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@leviutima/ds/styles.css';
 
 @theme {
   --color-canvas: light-dark(#f4f5f7, #111317);
