@@ -1,28 +1,2 @@
 @import 'tailwindcss';
-
-@theme {
-  --color-canvas: light-dark(#f4f5f7, #111317);
-  --color-card: light-dark(#fff, #1b1e23);
-  --color-ink: light-dark(#1c1e21, #e8eaed);
-  --color-muted: light-dark(#5f6368, #a0a4a8);
-  --color-line: light-dark(#d5d8dc, #33373d);
-  --color-accent: light-dark(#2457d6, #7aa2ff);
-  --color-on-accent: light-dark(#fff, #0b1220);
-
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: monospace;
-
-  --text-sm--line-height: normal;
-  --text-2xl--line-height: normal;
-}
-
-@layer base {
-  :root {
-    color-scheme: light dark;
-    line-height: normal;
-  }
-
-  body {
-    @apply bg-canvas text-ink;
-  }
-}
+@import '@leviutima/ds/styles.css';

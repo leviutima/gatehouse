@@ -80,9 +80,9 @@ Valida tudo que vem de fora:
 
 ### Tailwind
 
-- Tailwind v4 pelo plugin do Vite, sem arquivo de configuração. As cores ficam no `@theme` de `app/styles/index.css`, com `light-dark()` para seguir o tema do sistema.
-- O reset do Tailwind foi ajustado para manter a aparência anterior: o `line-height` padrão continua `normal`, e os `max-width` somam o padding por causa do `border-box`.
-- O botão fica em `shared/ui`, para as classes não se repetirem em cada tela.
+- Tailwind v4 pelo plugin do Vite, sem arquivo de configuração. O `max-width` das telas soma o padding por causa do `border-box`.
+- Tema e componentes vêm do design system `@leviutima/ds`, importado em `app/styles/index.css`. O console não define cores nem fontes próprias.
+- A tela de login é renderizada pelo backend e ainda não usa o design system.
 
 ## Fluxo de dados
 

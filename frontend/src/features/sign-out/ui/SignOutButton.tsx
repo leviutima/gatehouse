@@ -1,8 +1,12 @@
+import { Button } from '@leviutima/ds'
 import { useSession } from '@/entities/session'
-import { Button } from '@/shared/ui'
 
 export function SignOutButton() {
   const session = useSession()
 
-  return <Button onClick={() => void session.logout()}>Sign out</Button>
+  return (
+    <Button variant="secondary" size="sm" onClick={() => void session.logout()}>
+      Sign out
+    </Button>
+  )
 }
