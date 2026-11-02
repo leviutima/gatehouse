@@ -6,9 +6,9 @@ interface AppHeaderProps {
 
 export function AppHeader({ username }: AppHeaderProps) {
   return (
-    <header className="flex items-center gap-4 border-b border-line bg-card px-6 py-3">
-      <strong className="mr-auto">Gatehouse</strong>
-      <span className="text-muted">{username}</span>
+    <header className="flex items-center gap-4 border-b border-foreground bg-background px-6 py-3">
+      <strong className="mr-auto font-semibold">Gatehouse</strong>
+      <span className="text-sm text-muted-foreground">{username}</span>
       <SignOutButton />
     </header>
   )
