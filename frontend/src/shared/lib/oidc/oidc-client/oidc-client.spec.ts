@@ -7,9 +7,9 @@ import {
   logoutUrl,
   verifiedIdTokenClaims,
 } from './oidc-client.ts'
-import type { OidcConfig } from './oidc-config.ts'
-import { fakeJwt, providerMetadata } from './testing/fixtures.ts'
-import { stubOidcHttp } from './testing/stub-oidc-http.ts'
+import type { OidcConfig } from '../oidc-config/oidc-config.ts'
+import { fakeJwt, providerMetadata } from '../testing/fixtures.ts'
+import { stubOidcHttp } from '../testing/stub-oidc-http.ts'
 
 const config: OidcConfig = {
   issuer: 'http://id.test/realms/master',
