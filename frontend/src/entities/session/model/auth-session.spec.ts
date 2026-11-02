@@ -6,7 +6,7 @@ import { memoryStorage } from '@/shared/lib/oidc/testing/memory-storage.ts'
 import { stubOidcHttp } from '@/shared/lib/oidc/testing/stub-oidc-http.ts'
 import { AuthSession, SessionExpiredError } from './auth-session.ts'
 import type { AuthBrowser } from './auth-session.ts'
-import { consoleOidcConfig } from '../config/console-oidc-config.ts'
+import { consoleOidcConfig } from '../config/console-oidc-config/console-oidc-config.ts'
 
 const config = consoleOidcConfig('http://id.test', 'http://console.test')
 const transaction = { state: 'state-1', nonce: 'nonce-1', codeVerifier: 'v-1' }
