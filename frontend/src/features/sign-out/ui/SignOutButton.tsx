@@ -1,11 +1,8 @@
 import { useSession } from '@/entities/session'
+import { Button } from '@/shared/ui'
 
 export function SignOutButton() {
   const session = useSession()
 
-  return (
-    <button type="button" onClick={() => void session.logout()}>
-      Sign out
-    </button>
-  )
+  return <Button onClick={() => void session.logout()}>Sign out</Button>
 }
