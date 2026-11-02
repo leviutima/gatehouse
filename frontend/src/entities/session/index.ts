@@ -6,4 +6,4 @@ export type {
   SessionStart,
   SessionUser,
 } from './model/auth-session/auth-session.ts'
-export { SessionContext, useSession } from './model/use-session.ts'
+export { SessionContext, useSession } from './model/use-session/use-session.ts'

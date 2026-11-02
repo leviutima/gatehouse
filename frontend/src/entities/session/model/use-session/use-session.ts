@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { AuthSession } from './auth-session/auth-session.ts'
+import type { AuthSession } from '../auth-session/auth-session.ts'
 
 export const SessionContext = createContext<AuthSession | null>(null)
 
