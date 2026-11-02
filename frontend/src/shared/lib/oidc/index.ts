@@ -1,4 +1,4 @@
-export { randomToken, s256Challenge } from './pkce.ts'
+export { randomToken, s256Challenge } from './pkce/pkce.ts'
 export {
   saveLoginTransaction,
   takeLoginTransaction,
