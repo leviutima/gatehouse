@@ -17,7 +17,7 @@ export function RealmsTable() {
   const { data, error, isFetching, refetch } = useRealmsQuery()
 
   if (isFetching || error instanceof SessionExpiredError) {
-    return <p className="text-muted-foreground">Loading realms…</p>
+    return <p className="text-sm text-muted-foreground">Loading realms…</p>
   }
   if (hasHttpStatus(error, 403)) {
     return (
