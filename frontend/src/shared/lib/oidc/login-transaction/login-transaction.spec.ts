@@ -3,7 +3,7 @@ import {
   saveLoginTransaction,
   takeLoginTransaction,
 } from './login-transaction.ts'
-import { memoryStorage } from './testing/memory-storage.ts'
+import { memoryStorage } from '../testing/memory-storage.ts'
 
 const transaction = { state: 's', nonce: 'n', codeVerifier: 'v' }
 

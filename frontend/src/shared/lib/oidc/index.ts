@@ -2,11 +2,11 @@ export { randomToken, s256Challenge } from './pkce/pkce.ts'
 export {
   saveLoginTransaction,
   takeLoginTransaction,
-} from './login-transaction.ts'
+} from './login-transaction/login-transaction.ts'
 export type {
   LoginTransaction,
   TransactionStorage,
-} from './login-transaction.ts'
+} from './login-transaction/login-transaction.ts'
 export {
   authorizationCode,
   authorizationUrl,
