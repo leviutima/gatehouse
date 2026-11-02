@@ -26,6 +26,14 @@ export class InMemoryUserRepository extends UserRepository {
     );
   }
 
+  findByEmail(realmId: string, email: string): Promise<User | null> {
+    return Promise.resolve(
+      this.users.find(
+        (user) => user.realmId === realmId && sameText(user.email, email),
+      ) ?? null,
+    );
+  }
+
   findByUsername(realmId: string, username: string): Promise<User | null> {
     return Promise.resolve(
       this.users.find(

@@ -16,6 +16,8 @@ function realm(loginIdentifier: LoginIdentifierType): Realm {
     loginIdentifier,
     passwordMinLength: 12,
     accessTokenLifespan: 300,
+    sessionIdleTimeout: 1800,
+    sessionMaxLifespan: 36000,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

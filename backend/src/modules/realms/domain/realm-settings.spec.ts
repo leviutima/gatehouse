@@ -34,6 +34,15 @@ describe('assertValidRealmSettings', () => {
     ['a fractional password minimum', { passwordMinLength: 12.5 }],
     ['a lifespan below one minute', { accessTokenLifespan: 59 }],
     ['a lifespan above one day', { accessTokenLifespan: 86401 }],
+    ['a session idle timeout below 5 minutes', { sessionIdleTimeout: 299 }],
+    [
+      'a session max lifespan above 30 days',
+      { sessionMaxLifespan: 30 * 24 * 60 * 60 + 1 },
+    ],
+    [
+      'an idle timeout longer than the max lifespan',
+      { sessionIdleTimeout: 7200, sessionMaxLifespan: 3600 },
+    ],
   ])('rejects %s', (_case, overrides) => {
     expect(() => assertValidRealmSettings({ ...valid, ...overrides })).toThrow(
       InvalidRealmConfigurationError,

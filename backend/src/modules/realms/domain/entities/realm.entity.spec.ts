@@ -11,6 +11,8 @@ function realm(overrides: Partial<RealmProps> = {}): Realm {
     loginIdentifier: LoginIdentifier.USERNAME_OR_EMAIL,
     passwordMinLength: 12,
     accessTokenLifespan: 300,
+    sessionIdleTimeout: 1800,
+    sessionMaxLifespan: 36000,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

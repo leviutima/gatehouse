@@ -7,6 +7,8 @@ export interface CreateRealmData {
   loginIdentifier: LoginIdentifier;
   passwordMinLength?: number;
   accessTokenLifespan?: number;
+  sessionIdleTimeout?: number;
+  sessionMaxLifespan?: number;
 }
 
 export interface UpdateRealmData {
@@ -14,6 +16,8 @@ export interface UpdateRealmData {
   enabled?: boolean;
   passwordMinLength?: number;
   accessTokenLifespan?: number;
+  sessionIdleTimeout?: number;
+  sessionMaxLifespan?: number;
 }
 
 export abstract class RealmRepository {

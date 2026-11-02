@@ -5,7 +5,7 @@ import { ClientRepository } from '../../domain/repositories/client.repository.js
 
 export interface ClientCredentials {
   clientId: string;
-  clientSecret: string;
+  clientSecret: string | null;
 }
 
 @Injectable()
@@ -17,17 +17,19 @@ export class ClientAuthenticator {
 
   async authenticate(
     realmId: string,
-    credentials: ClientCredentials,
+    { clientId, clientSecret }: ClientCredentials,
   ): Promise<Client | null> {
-    const client = await this.clients.findByClientId(
-      realmId,
-      credentials.clientId,
-    );
+    const client = await this.clients.findByClientId(realmId, clientId);
+    if (!client?.enabled) {
+      return null;
+    }
+    if (!client.isConfidential) {
+      return clientSecret === null ? client : null;
+    }
     if (
-      !client?.enabled ||
-      !client.isConfidential ||
+      clientSecret === null ||
       client.secretHash === null ||
-      !this.secretHasher.verify(client.secretHash, credentials.clientSecret)
+      !this.secretHasher.verify(client.secretHash, clientSecret)
     ) {
       return null;
     }

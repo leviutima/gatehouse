@@ -4,6 +4,8 @@ import type { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { LoginIdentifier } from '../../../realms/domain/login-identifier.js';
 import {
   assertValidRealmSettings,
+  DEFAULT_SESSION_IDLE_TIMEOUT,
+  DEFAULT_SESSION_MAX_LIFESPAN,
   RealmSettings,
 } from '../../../realms/domain/realm-settings.js';
 import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
@@ -36,7 +38,15 @@ export class CreateRealmUseCase {
   ) {}
 
   execute(input: CreateRealmInput): Promise<CreateRealmResult> {
-    assertValidRealmSettings(input);
+    const sessionIdleTimeout =
+      input.sessionIdleTimeout ?? DEFAULT_SESSION_IDLE_TIMEOUT;
+    const sessionMaxLifespan =
+      input.sessionMaxLifespan ?? DEFAULT_SESSION_MAX_LIFESPAN;
+    assertValidRealmSettings({
+      ...input,
+      sessionIdleTimeout,
+      sessionMaxLifespan,
+    });
 
     return this.transactions.run(async () => {
       const realm = await this.realms.create({
@@ -46,6 +56,8 @@ export class CreateRealmUseCase {
           input.loginIdentifier ?? LoginIdentifier.USERNAME_OR_EMAIL,
         passwordMinLength: input.passwordMinLength,
         accessTokenLifespan: input.accessTokenLifespan,
+        sessionIdleTimeout,
+        sessionMaxLifespan,
       });
       await this.adminRoles.ensureAdminRole(realm.id);
       const admin = input.admin

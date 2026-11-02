@@ -43,6 +43,7 @@ services:
       GATEHOUSE_ADMIN_USERNAME: ${GATEHOUSE_ADMIN_USERNAME:-admin}
       GATEHOUSE_ADMIN_EMAIL: ${GATEHOUSE_ADMIN_EMAIL:-admin@gatehouse.local}
       GATEHOUSE_ADMIN_PASSWORD: ${GATEHOUSE_ADMIN_PASSWORD:?set GATEHOUSE_ADMIN_PASSWORD in .env}
+      GATEHOUSE_ADMIN_CONSOLE_URL: ${GATEHOUSE_ADMIN_CONSOLE_URL:-http://localhost:8080}
     ports:
       - "9000:9000"
     depends_on:
@@ -55,6 +56,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_GATEHOUSE_ISSUER: ${GATEHOUSE_ISSUER:-http://localhost:9000}
     ports:
       - "8080:8080"
     restart: unless-stopped

@@ -24,6 +24,13 @@ export class PrismaUserRepository extends UserRepository {
     return row ? UserMapper.toDomain(row) : null;
   }
 
+  async findByEmail(realmId: string, email: string): Promise<User | null> {
+    const row = await this.prisma.db.user.findUnique({
+      where: { realmId_email: { realmId, email } },
+    });
+    return row ? UserMapper.toDomain(row) : null;
+  }
+
   async findByUsername(
     realmId: string,
     username: string,

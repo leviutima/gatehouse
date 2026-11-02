@@ -11,6 +11,8 @@ export interface AccessTokenRequest {
   realm: Realm;
   subject: string;
   clientId: string;
+  scope?: string;
+  sessionId?: string;
 }
 
 export interface IssuedAccessToken {
@@ -31,6 +33,8 @@ export class AccessTokenIssuer {
     realm,
     subject,
     clientId,
+    scope,
+    sessionId,
   }: AccessTokenRequest): Promise<IssuedAccessToken> {
     const issuer = this.realmIssuer.forRealm(realm.name);
     const issuedAt = Math.floor(this.clock.now().getTime() / 1000);
@@ -44,6 +48,8 @@ export class AccessTokenIssuer {
       iat: issuedAt,
       exp: issuedAt + expiresIn,
       jti: this.secretGenerator.generate(),
+      ...(scope === undefined ? {} : { scope }),
+      ...(sessionId === undefined ? {} : { sid: sessionId }),
     });
 
     return { token, expiresIn };
