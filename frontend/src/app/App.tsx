@@ -32,12 +32,12 @@ export function App() {
 
   switch (state.kind) {
     case 'starting':
-      return <p className="mx-auto mt-[20vh] max-w-120 px-4 text-center text-muted-foreground">Signing in…</p>
+      return <p className="mx-auto mt-[20vh] max-w-120 px-4 text-center text-sm text-muted-foreground">Signing in…</p>
     case 'failed':
       return (
         <main className="mx-auto mt-[20vh] max-w-120 px-4 text-center" role="alert">
-          <h1 className="mb-4 text-2xl font-semibold">Could not sign in</h1>
-          <p className="my-4">{state.message}</p>
+          <h1 className="mb-2 text-xl font-semibold">Could not sign in</h1>
+          <p className="mb-4 text-sm text-muted-foreground">{state.message}</p>
           <Button onClick={() => void session.redirectToLogin()}>Try again</Button>
         </main>
       )
