@@ -22,4 +22,4 @@ export type {
   ProviderMetadata,
   TokenSet,
 } from './oidc-client.ts'
-export type { OidcConfig } from './oidc-config.ts'
+export type { OidcConfig } from './oidc-config/oidc-config.ts'
