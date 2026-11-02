@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from '@/entities/session'
 import type { SessionUser } from '@/entities/session'
 import { RealmsPage } from '@/pages/realms'
+import { Button } from '@/shared/ui'
 import { AppHeader } from '@/widgets/app-header'
 
 type AppState =
@@ -31,15 +32,13 @@ export function App() {
 
   switch (state.kind) {
     case 'starting':
-      return <p className="centered muted">Signing in…</p>
+      return <p className="mx-auto mt-[20vh] max-w-120 px-4 text-center text-muted">Signing in…</p>
     case 'failed':
       return (
-        <main className="centered" role="alert">
-          <h1>Could not sign in</h1>
-          <p>{state.message}</p>
-          <button type="button" onClick={() => void session.redirectToLogin()}>
-            Try again
-          </button>
+        <main className="mx-auto mt-[20vh] max-w-120 px-4 text-center" role="alert">
+          <h1 className="mb-4 text-2xl font-bold">Could not sign in</h1>
+          <p className="my-4">{state.message}</p>
+          <Button onClick={() => void session.redirectToLogin()}>Try again</Button>
         </main>
       )
     case 'signed_in':

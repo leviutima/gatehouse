@@ -1,8 +1,8 @@
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
-import type { LoginTransaction } from './login-transaction.ts'
-import type { OidcConfig } from './oidc-config.ts'
-import { oidcHttp } from './oidc-http.ts'
+import type { LoginTransaction } from '../login-transaction/login-transaction.ts'
+import type { OidcConfig } from '../oidc-config/oidc-config.ts'
+import { oidcHttp } from '../oidc-http/oidc-http.ts'
 
 const providerMetadataSchema = z.object({
   issuer: z.string(),
