@@ -10,6 +10,7 @@ import {
 } from '@leviutima/ds'
 import { useRealmRolesQuery } from '@/entities/role'
 import { SessionExpiredError } from '@/entities/session'
+import { DeleteRealmRoleButton } from '@/features/delete-realm-role'
 import { hasHttpStatus } from '@/shared/api'
 
 interface RealmRolesTableProps {
@@ -19,7 +20,7 @@ interface RealmRolesTableProps {
 export function RealmRolesTable({ realm }: RealmRolesTableProps) {
   const { data, error, isFetching, refetch } = useRealmRolesQuery(realm)
 
-  if (isFetching || error instanceof SessionExpiredError) {
+  if ((isFetching && !data) || error instanceof SessionExpiredError) {
     return <p className="text-sm text-muted-foreground">Loading roles…</p>
   }
   if (hasHttpStatus(error, 404)) {
@@ -41,8 +42,11 @@ export function RealmRolesTable({ realm }: RealmRolesTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
+          <TableHead className="w-1/3">Name</TableHead>
           <TableHead>Description</TableHead>
+          <TableHead>
+            <span className="sr-only">Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -51,6 +55,11 @@ export function RealmRolesTable({ realm }: RealmRolesTableProps) {
             <TableCell className="font-mono">{role.name}</TableCell>
             <TableCell className="text-muted-foreground">
               {role.description ?? '—'}
+            </TableCell>
+            <TableCell className="text-right whitespace-nowrap">
+              {role.name !== 'admin' && (
+                <DeleteRealmRoleButton realm={realm} roleName={role.name} />
+              )}
             </TableCell>
           </TableRow>
         ))}
