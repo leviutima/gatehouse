@@ -3,6 +3,7 @@ import { Alert, Button } from '@leviutima/ds'
 import { useForm, useWatch } from 'react-hook-form'
 import type { CreatedClient } from '@/entities/client'
 import { apiErrorCode, apiErrorMessage } from '@/shared/api'
+import { FormFooter } from '@/shared/ui'
 import { useCreateClient } from '../api/use-save-client/use-save-client.ts'
 import {
   clientFormSchema,
@@ -46,14 +47,16 @@ export function CreateClientForm({ realm, onCreated }: CreateClientFormProps) {
   })
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={onSubmit} noValidate>
       <ClientFieldset mode="create" register={register} errors={errors} type={type} />
-      {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
-      <div>
-        <Button type="submit" loading={isSubmitting}>
-          Create client
-        </Button>
-      </div>
+      <FormFooter>
+        {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
+        <div>
+          <Button type="submit" loading={isSubmitting}>
+            Create client
+          </Button>
+        </div>
+      </FormFooter>
     </form>
   )
 }

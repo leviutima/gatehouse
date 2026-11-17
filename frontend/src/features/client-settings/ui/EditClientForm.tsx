@@ -3,6 +3,7 @@ import { Alert, Button } from '@leviutima/ds'
 import { useForm } from 'react-hook-form'
 import type { Client } from '@/entities/client'
 import { apiErrorMessage } from '@/shared/api'
+import { FormFooter } from '@/shared/ui'
 import { useUpdateClient } from '../api/use-save-client/use-save-client.ts'
 import {
   clientFormSchema,
@@ -40,19 +41,21 @@ export function EditClientForm({ realm, client }: EditClientFormProps) {
   })
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={onSubmit} noValidate>
       <ClientFieldset mode="edit" register={register} errors={errors} type={client.type} />
-      {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
-      <div className="flex items-center gap-3">
-        <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
-          Save changes
-        </Button>
-        {isSubmitSuccessful && !isDirty && (
-          <span className="text-sm text-muted-foreground" role="status">
-            Saved.
-          </span>
-        )}
-      </div>
+      <FormFooter>
+        {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
+        <div className="flex items-center gap-3">
+          <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
+            Save changes
+          </Button>
+          {isSubmitSuccessful && !isDirty && (
+            <span className="text-sm text-muted-foreground" role="status">
+              Saved.
+            </span>
+          )}
+        </div>
+      </FormFooter>
     </form>
   )
 }
