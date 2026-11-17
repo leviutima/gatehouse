@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { createRealm, realmsQueryKey } from '@/entities/realm'
 import type { Realm } from '@/entities/realm'
 import { apiErrorCode, apiErrorMessage } from '@/shared/api'
+import { FormFooter, SettingsSection } from '@/shared/ui'
 import {
   createRealmSchema,
   emptyRealmForm,
@@ -56,49 +57,57 @@ export function CreateRealmForm({ onCreated }: CreateRealmFormProps) {
   })
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex max-w-lg flex-col gap-4">
-      <Field
-        label="Name"
-        hint="Lowercase letters, digits and hyphens. Part of every URL of the realm, so it cannot change."
-        error={errors.name?.message}
-        required
-      >
-        <Input {...register('name')} autoComplete="off" placeholder="shop" className="font-mono" />
-      </Field>
-      <Field label="Display name" error={errors.displayName?.message} required>
-        <Input {...register('displayName')} autoComplete="off" placeholder="Shop" />
-      </Field>
-      <Field label="Users sign in with" hint="Cannot change after creation.">
-        <Select {...register('loginIdentifier')}>
-          <option value="USERNAME_OR_EMAIL">Username or email</option>
-          <option value="USERNAME">Username</option>
-          <option value="EMAIL">Email</option>
-        </Select>
-      </Field>
-
-      <Checkbox {...register('withAdmin')} label="Create the first admin of the realm" />
-      {withAdmin && (
-        <div className="flex flex-col gap-4 border-l border-border pl-4">
-          {loginIdentifier !== 'EMAIL' && (
-            <Field label="Admin username" error={errors.adminUsername?.message} required>
-              <Input {...register('adminUsername')} autoComplete="off" />
-            </Field>
-          )}
-          <Field label="Admin email" error={errors.adminEmail?.message} required>
-            <Input {...register('adminEmail')} type="email" autoComplete="off" />
+    <form onSubmit={onSubmit} noValidate>
+      <SettingsSection title="Realm" description="The name goes in every URL of the realm, including its issuer.">
+        <div className="flex max-w-xl flex-col gap-4">
+          <Field
+            label="Name"
+            hint="Lowercase letters, digits and hyphens. Cannot change later."
+            error={errors.name?.message}
+            required
+          >
+            <Input {...register('name')} autoComplete="off" placeholder="shop" className="font-mono" />
           </Field>
-          <Field label="Admin password" error={errors.adminPassword?.message} required>
-            <Input {...register('adminPassword')} type="password" autoComplete="new-password" />
+          <Field label="Display name" error={errors.displayName?.message} required>
+            <Input {...register('displayName')} autoComplete="off" placeholder="Shop" />
+          </Field>
+          <Field label="Users sign in with" hint="Cannot change later.">
+            <Select {...register('loginIdentifier')}>
+              <option value="USERNAME_OR_EMAIL">Username or email</option>
+              <option value="USERNAME">Username</option>
+              <option value="EMAIL">Email</option>
+            </Select>
           </Field>
         </div>
-      )}
-
-      {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
-      <div>
-        <Button type="submit" loading={isSubmitting}>
-          Create realm
-        </Button>
-      </div>
+      </SettingsSection>
+      <SettingsSection title="First admin" description="Someone who can manage this realm without an admin of master. You can add one later too.">
+        <div className="flex max-w-xl flex-col gap-4">
+          <Checkbox {...register('withAdmin')} label="Create the first admin of the realm" />
+          {withAdmin && (
+            <>
+              {loginIdentifier !== 'EMAIL' && (
+                <Field label="Admin username" error={errors.adminUsername?.message} required>
+                  <Input {...register('adminUsername')} autoComplete="off" />
+                </Field>
+              )}
+              <Field label="Admin email" error={errors.adminEmail?.message} required>
+                <Input {...register('adminEmail')} type="email" autoComplete="off" />
+              </Field>
+              <Field label="Admin password" error={errors.adminPassword?.message} required>
+                <Input {...register('adminPassword')} type="password" autoComplete="new-password" />
+              </Field>
+            </>
+          )}
+        </div>
+      </SettingsSection>
+      <FormFooter>
+        {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
+        <div>
+          <Button type="submit" loading={isSubmitting}>
+            Create realm
+          </Button>
+        </div>
+      </FormFooter>
     </form>
   )
 }
