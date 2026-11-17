@@ -16,19 +16,24 @@ const IDENTIFIER_LABELS: Record<LoginIdentifier, string> = {
 };
 
 const STYLES = `
-  :root { color-scheme: light dark; --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #5f6368; --border: #d5d8dc; --accent: #2457d6; --on-accent: #fff; --error: #b3261e; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #111317; --card: #1b1e23; --text: #e8eaed; --muted: #a0a4a8; --border: #33373d; --accent: #7aa2ff; --on-accent: #0b1220; --error: #f2b8b5; } }
+  :root { color-scheme: light dark; --background: light-dark(#ffffff, #191919); --foreground: light-dark(#37352f, #d4d4d4); --muted: light-dark(#6f6e69, #9b9b9b); --border: light-dark(#dfdedb, #373737); --hover: light-dark(#4f4d48, #bdbdbd); --subtle: light-dark(#f7f6f3, #252525); }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px 28px; }
-  h1 { margin: 0 0 4px; font-size: 1.4rem; }
-  p.subtitle { margin: 0 0 24px; color: var(--muted); }
-  label { display: block; margin: 16px 0 6px; font-weight: 600; font-size: .9rem; }
-  input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; }
-  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  button { width: 100%; margin-top: 24px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font: inherit; font-weight: 600; cursor: pointer; }
-  .error { margin: 0 0 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--error); color: var(--error); font-size: .9rem; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--background); color: var(--foreground); font: 14px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { width: 100%; max-width: 360px; background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 28px 24px; }
+  h1 { margin: 0 0 2px; font-size: 1.25rem; font-weight: 600; }
+  p.subtitle { margin: 0 0 20px; color: var(--muted); }
+  label { display: block; margin: 14px 0 4px; font-weight: 500; }
+  input { display: block; width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font: inherit; transition: border-color 100ms; }
+  input:hover { border-color: var(--muted); }
+  input:-webkit-autofill { -webkit-text-fill-color: var(--foreground); box-shadow: 0 0 0 36px var(--background) inset; }
+  button { display: block; width: 100%; height: 36px; margin-top: 20px; border: 0; border-radius: 4px; background: var(--foreground); color: var(--background); font: inherit; font-weight: 500; cursor: pointer; transition: background-color 100ms; }
+  button:hover { background: var(--hover); }
+  input:focus-visible, button:focus-visible { outline: 2px solid color-mix(in srgb, var(--foreground) 60%, transparent); outline-offset: 1px; }
+  .error { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; padding: 10px 12px; border: 1px solid var(--muted); border-radius: 6px; background: var(--subtle); }
+  .error svg { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; }
 `;
+
+const ERROR_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.75v3.75M8 11.25v.01"/></svg>`;
 
 @Injectable()
 export class DefaultLoginTheme extends LoginTheme {
@@ -37,7 +42,7 @@ export class DefaultLoginTheme extends LoginTheme {
     const inputType =
       model.loginIdentifier === LoginIdentifier.EMAIL ? 'email' : 'text';
     const error = model.failed
-      ? `<p class="error" role="alert">Those credentials did not work. Check them and try again.</p>`
+      ? `<div class="error" role="alert">${ERROR_ICON}<span>Those credentials did not work. Check them and try again.</span></div>`
       : '';
 
     return page(

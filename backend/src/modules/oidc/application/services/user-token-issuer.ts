@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Client } from '../../../clients/domain/entities/client.entity.js';
 import { GrantType } from '../../../clients/domain/grant-type.js';
 import type { Realm } from '../../../realms/domain/entities/realm.entity.js';
+import { RoleRepository } from '../../../roles/domain/repositories/role.repository.js';
 import type { Session } from '../../../sessions/domain/entities/session.entity.js';
 import type { User } from '../../../users/domain/entities/user.entity.js';
 import { OPENID_SCOPE } from '../../domain/scope.js';
@@ -34,6 +35,7 @@ export class UserTokenIssuer {
     private readonly accessTokenIssuer: AccessTokenIssuer,
     private readonly idTokenIssuer: IdTokenIssuer,
     private readonly refreshTokenIssuer: RefreshTokenIssuer,
+    private readonly roles: RoleRepository,
   ) {}
 
   async issue({
@@ -47,12 +49,20 @@ export class UserTokenIssuer {
     refreshFamilyId,
   }: UserTokenGrant): Promise<IssuedUserTokens> {
     const scopes = scope.split(' ').filter(Boolean);
+    const [realmRoles, clientRoles] = await Promise.all([
+      this.roles.listForUser(user.id),
+      this.roles.listForUser(user.id, client.id),
+    ]);
     const { token, expiresIn } = await this.accessTokenIssuer.issue({
       realm,
       subject: user.id,
       clientId: client.clientId,
       scope,
       sessionId: session.id,
+      roles: {
+        realm: realmRoles.map(({ name }) => name),
+        client: clientRoles.map(({ name }) => name),
+      },
     });
     const idToken = scopes.includes(OPENID_SCOPE)
       ? await this.idTokenIssuer.issue({

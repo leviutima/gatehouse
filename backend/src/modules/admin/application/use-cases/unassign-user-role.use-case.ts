@@ -13,10 +13,19 @@ export class UnassignUserRoleUseCase {
     private readonly authorizer: AdminAuthorizer,
   ) {}
 
-  async execute({ realmName, userId, roleName }: UserRoleInput): Promise<void> {
+  async execute({
+    realmName,
+    clientId,
+    userId,
+    roleName,
+  }: UserRoleInput): Promise<void> {
     const realm = await this.finder.realm(realmName);
     const user = await this.finder.user(realm, userId);
-    const role = await this.finder.role(realm, roleName);
+    const role = await this.finder.role(
+      realm,
+      roleName,
+      await this.finder.roleScope(realm, clientId),
+    );
     if (
       role.isAdmin &&
       (await this.authorizer.isLastEnabledAdmin(realm.name, user.id))

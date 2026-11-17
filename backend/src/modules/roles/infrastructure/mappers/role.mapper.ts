@@ -6,6 +6,7 @@ export const RoleMapper = {
     return new Role({
       id: row.id,
       realmId: row.realmId,
+      clientId: row.clientId,
       name: row.name,
       description: row.description,
       createdAt: row.createdAt,

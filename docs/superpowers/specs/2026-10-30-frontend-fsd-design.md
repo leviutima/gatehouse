@@ -82,7 +82,7 @@ Valida tudo que vem de fora:
 
 - Tailwind v4 pelo plugin do Vite, sem arquivo de configuração. O `max-width` das telas soma o padding por causa do `border-box`.
 - Tema e componentes vêm do design system `@leviutima/ds`, importado em `app/styles/index.css`. O console não define cores nem fontes próprias.
-- A tela de login é renderizada pelo backend e ainda não usa o design system.
+- As páginas de login, logout e erro são renderizadas pelo backend, que não importa o pacote. O tema delas repete os tokens do design system à mão em `default-login-theme.ts`, então uma mudança nas cores do design system precisa ser levada para lá.
 
 ## Fluxo de dados
 
