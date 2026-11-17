@@ -5,6 +5,7 @@ import { RealmResourceFinder } from '../services/realm-resource-finder.js';
 
 export interface DeleteRoleInput {
   realmName: string;
+  clientId?: string;
   roleName: string;
 }
 
@@ -15,9 +16,17 @@ export class DeleteRoleUseCase {
     private readonly roles: RoleRepository,
   ) {}
 
-  async execute({ realmName, roleName }: DeleteRoleInput): Promise<void> {
+  async execute({
+    realmName,
+    clientId,
+    roleName,
+  }: DeleteRoleInput): Promise<void> {
     const realm = await this.finder.realm(realmName);
-    const role = await this.finder.role(realm, roleName);
+    const role = await this.finder.role(
+      realm,
+      roleName,
+      await this.finder.roleScope(realm, clientId),
+    );
     if (role.isAdmin) {
       throw new ReservedRoleError(role.name);
     }
