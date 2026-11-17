@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TokenVerifier } from '../../shared/application/auth/token-verifier.js';
 import { ClientsModule } from '../clients/clients.module.js';
 import { RealmsModule } from '../realms/realms.module.js';
+import { RolesModule } from '../roles/roles.module.js';
 import { SessionsModule } from '../sessions/sessions.module.js';
 import { SigningKeysModule } from '../signing-keys/signing-keys.module.js';
 import { UsersModule } from '../users/users.module.js';
@@ -47,6 +48,7 @@ import { LoginTheme } from './presentation/login/login-theme.js';
     SigningKeysModule,
     UsersModule,
     SessionsModule,
+    RolesModule,
   ],
   controllers: [
     JwksController,

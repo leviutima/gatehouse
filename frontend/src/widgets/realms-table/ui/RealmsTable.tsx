@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@leviutima/ds'
+import { Link } from '@tanstack/react-router'
 import { useRealmsQuery } from '@/entities/realm'
 import { SessionExpiredError } from '@/entities/session'
 import { hasHttpStatus } from '@/shared/api'
@@ -17,7 +18,7 @@ export function RealmsTable() {
   const { data, error, isFetching, refetch } = useRealmsQuery()
 
   if (isFetching || error instanceof SessionExpiredError) {
-    return <p className="text-muted-foreground">Loading realms…</p>
+    return <p className="text-sm text-muted-foreground">Loading realms…</p>
   }
   if (hasHttpStatus(error, 403)) {
     return (
@@ -51,7 +52,15 @@ export function RealmsTable() {
       <TableBody>
         {data.map((realm) => (
           <TableRow key={realm.id}>
-            <TableCell className="font-mono">{realm.name}</TableCell>
+            <TableCell className="font-mono">
+              <Link
+                to="/realms/$realm/roles"
+                params={{ realm: realm.name }}
+                className="underline-offset-4 hover:underline"
+              >
+                {realm.name}
+              </Link>
+            </TableCell>
             <TableCell>{realm.displayName}</TableCell>
             <TableCell>
               <Badge variant={realm.enabled ? 'solid' : 'outline'}>

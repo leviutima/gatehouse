@@ -73,7 +73,9 @@ Siglas e termos que aparecem no código, nos tokens e nas respostas HTTP do Gate
 | **`ACTIVE`** | A chave que assina os tokens novos. Cada realm tem exatamente uma, garantido por um índice único parcial no banco. |
 | **`PASSIVE`** | Uma chave que não assina mais, mas continua publicada e aceita, para que tokens emitidos antes de uma rotação de chave continuem válidos até expirar. |
 | **Rotação de chave** | Trocar a chave ativa por uma nova, mantendo a antiga como passiva por um tempo. |
-| **Papel** (role) | Um rótulo de permissão de um realm, atribuído a usuários do mesmo realm (tabelas `roles` e `user_roles`). As aplicações vão poder criar os próprios papéis; para o Gatehouse, só `admin` tem significado. O banco recusa atribuir a um usuário um papel de outro realm. |
+| **Papel** (role) | Um rótulo de permissão atribuído a usuários do mesmo realm (tabelas `roles` e `user_roles`). Pode ser um papel de realm ou um papel de client. Para o Gatehouse, só o papel de realm `admin` tem significado. O banco recusa atribuir a um usuário um papel de outro realm. |
+| **Papel de realm** | Papel sem client (`roles.client_id` nulo), válido para o realm todo. Rotas em `/admin/realms/{realm}/roles` e `/users/{id}/roles`. |
+| **Papel de client** | Papel que pertence a um client (`roles.client_id` preenchido), para a aplicação definir as próprias permissões. O nome só precisa ser único dentro do client, então `viewer` pode existir no realm e em vários clients, e até `admin` é permitido sem dar poder nenhum no Gatehouse. Apagar o client apaga seus papéis. Rotas em `/admin/realms/{realm}/clients/{clientId}/roles` e `/users/{id}/client-roles/{clientId}`. |
 | **Papel `admin`** | Papel reservado que todo realm tem. Quem o tem administra o realm. |
 | **Admin global** | Usuário do `master` com o papel `admin`. Administra todos os realms, inclusive criar e listar realms. |
 | **Admin de realm** | Usuário de um realm, por exemplo `shop`, com o papel `admin` desse realm. Administra só o `shop`. |
@@ -102,7 +104,9 @@ Um access token do Gatehouse é um JWT com três partes separadas por ponto. Dec
   "client_id": "billing",
   "iat": 1793137488,
   "exp": 1793137788,
-  "jti": "8qoXDQXZimXA_jwgE9MolWq0I0BROB6klL6IxPd_07I"
+  "jti": "8qoXDQXZimXA_jwgE9MolWq0I0BROB6klL6IxPd_07I",
+  "realm_access": { "roles": ["admin"] },
+  "resource_access": { "billing": { "roles": ["invoices:read"] } }
 }
 ```
 
@@ -129,6 +133,10 @@ Um access token do Gatehouse é um JWT com três partes separadas por ponto. Dec
 | **`iat`** | Issued At | Quando o token foi emitido, em segundos desde 1970 (Unix time). |
 | **`exp`** | Expiration | Quando o token expira, também em Unix time. É sempre `iat + accessTokenLifespan` do realm e é obrigatória: token sem `exp` é rejeitado. |
 | **`jti`** | JWT ID | Identificador único do token: 32 bytes aleatórios em base64url. Vai servir para revogação e para detectar reuso. |
+| **`realm_access`** | Realm roles | Os papéis de realm do usuário, em `roles`. Só em tokens de usuário, e só quando há algum papel. |
+| **`resource_access`** | Client roles | Os papéis do usuário no client que pediu o token, indexados pelo `client_id`. Os papéis em outros clients ficam de fora, para um token não revelar o que o usuário pode fazer em outra aplicação. Só em tokens de usuário, e só quando há algum papel. |
+
+Os papéis são lidos quando o token é emitido, no login e em cada refresh. Um papel retirado some no próximo refresh; o access token já emitido continua com ele até expirar. O `id_token`, o UserInfo e os tokens de `client_credentials` não levam papéis. A Admin API não usa essas claims: ela consulta o banco a cada requisição.
 
 ---
 
@@ -289,8 +297,8 @@ Respondem no formato `{ "statusCode": ..., "error": "...", "message": "..." }`.
 | **`user_already_exists`** | 409 | Já existe um usuário com esse username ou e-mail no realm. |
 | **`username_required`** | 422 | O realm não usa o e-mail como username, e nenhum username foi enviado. |
 | **`invalid_username`** | 422 | Username fora do padrão: 3 a 64 letras, números, `.` `_` `-`. |
-| **`role_not_found`** | 404 | O papel não existe neste realm. |
-| **`role_already_exists`** | 409 | Já existe um papel com esse nome no realm. |
+| **`role_not_found`** | 404 | O papel não existe neste realm, ou neste client no caso de um papel de client. |
+| **`role_already_exists`** | 409 | Já existe um papel com esse nome no realm, ou no client no caso de um papel de client. |
 | **`invalid_role_name`** | 422 | Nome de papel fora do padrão: letras, números, `.` `_` `:` `-`, até 64 caracteres. |
 | **`reserved_role`** | 422 | Tentativa de apagar o papel `admin`, que todo realm precisa ter. |
 | **`client_not_found`** | 404 | O client não existe neste realm. |

@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import type { Client } from '../../../clients/domain/entities/client.entity.js';
+import { ClientNotFoundError } from '../../../clients/domain/errors/client-not-found.error.js';
+import { ClientRepository } from '../../../clients/domain/repositories/client.repository.js';
 import type { Realm } from '../../../realms/domain/entities/realm.entity.js';
 import { RealmNotFoundError } from '../../../realms/domain/errors/realm-not-found.error.js';
 import { RealmRepository } from '../../../realms/domain/repositories/realm.repository.js';
@@ -15,6 +18,7 @@ export class RealmResourceFinder {
     private readonly realms: RealmRepository,
     private readonly users: UserRepository,
     private readonly roles: RoleRepository,
+    private readonly clients: ClientRepository,
   ) {}
 
   async realm(name: string): Promise<Realm> {
@@ -33,8 +37,24 @@ export class RealmResourceFinder {
     return user;
   }
 
-  async role(realm: Realm, roleName: string): Promise<Role> {
-    const role = await this.roles.findByName(realm.id, roleName);
+  async client(realm: Realm, clientId: string): Promise<Client> {
+    const client = await this.clients.findByClientId(realm.id, clientId);
+    if (!client) {
+      throw new ClientNotFoundError(clientId);
+    }
+    return client;
+  }
+
+  async roleScope(realm: Realm, clientId?: string): Promise<string | null> {
+    return clientId ? (await this.client(realm, clientId)).id : null;
+  }
+
+  async role(
+    realm: Realm,
+    roleName: string,
+    scope: string | null = null,
+  ): Promise<Role> {
+    const role = await this.roles.findByName(realm.id, roleName, scope);
     if (!role) {
       throw new RoleNotFoundError(roleName);
     }

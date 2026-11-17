@@ -7,12 +7,18 @@ import { RealmIssuer } from '../realm-issuer.js';
 
 export const ACCESS_TOKEN_TYPE = 'at+jwt';
 
+export interface AccessTokenRoles {
+  realm: string[];
+  client: string[];
+}
+
 export interface AccessTokenRequest {
   realm: Realm;
   subject: string;
   clientId: string;
   scope?: string;
   sessionId?: string;
+  roles?: AccessTokenRoles;
 }
 
 export interface IssuedAccessToken {
@@ -35,6 +41,7 @@ export class AccessTokenIssuer {
     clientId,
     scope,
     sessionId,
+    roles,
   }: AccessTokenRequest): Promise<IssuedAccessToken> {
     const issuer = this.realmIssuer.forRealm(realm.name);
     const issuedAt = Math.floor(this.clock.now().getTime() / 1000);
@@ -50,8 +57,21 @@ export class AccessTokenIssuer {
       jti: this.secretGenerator.generate(),
       ...(scope === undefined ? {} : { scope }),
       ...(sessionId === undefined ? {} : { sid: sessionId }),
+      ...roleClaims(clientId, roles),
     });
 
     return { token, expiresIn };
   }
+}
+
+function roleClaims(
+  clientId: string,
+  roles: AccessTokenRoles | undefined,
+): Record<string, unknown> {
+  return {
+    ...(roles?.realm.length ? { realm_access: { roles: roles.realm } } : {}),
+    ...(roles?.client.length
+      ? { resource_access: { [clientId]: { roles: roles.client } } }
+      : {}),
+  };
 }
