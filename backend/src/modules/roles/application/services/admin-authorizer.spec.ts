@@ -2,6 +2,8 @@ import type { Principal } from '../../../../shared/application/auth/principal.js
 import { InMemoryRealmRepository } from '../../../realms/testing/in-memory-realm.repository.js';
 import { aRealm } from '../../../realms/testing/realm.fixture.js';
 import { InMemoryUserRepository } from '../../../users/testing/in-memory-user.repository.js';
+import { TEST_NOW } from '../../../../shared/testing/test-clock.js';
+import { Role } from '../../domain/entities/role.entity.js';
 import { InMemoryRoleRepository } from '../../testing/in-memory-role.repository.js';
 import { AdminAuthorizer } from './admin-authorizer.js';
 import { AdminRoleProvisioner } from './admin-role-provisioner.js';
@@ -15,6 +17,7 @@ const principal = (realm: string, subject: string): Principal => ({
 
 describe('AdminAuthorizer', () => {
   let users: InMemoryUserRepository;
+  let roles: InMemoryRoleRepository;
   let provisioner: AdminRoleProvisioner;
   let authorizer: AdminAuthorizer;
 
@@ -44,7 +47,7 @@ describe('AdminAuthorizer', () => {
       aRealm({ name: 'other' }),
     ]);
     users = new InMemoryUserRepository();
-    const roles = new InMemoryRoleRepository(realms, users);
+    roles = new InMemoryRoleRepository(realms, users);
     provisioner = new AdminRoleProvisioner(roles);
     authorizer = new AdminAuthorizer(roles);
 
@@ -137,6 +140,31 @@ describe('AdminAuthorizer', () => {
 
     await users.update(carla, { enabled: false });
 
+    await expect(authorizer.isLastEnabledAdmin('shop', ana)).resolves.toBe(
+      true,
+    );
+  });
+
+  it('ignores a client role that happens to be called admin', async () => {
+    const clientAdmin = new Role({
+      id: 'client-admin',
+      realmId: 'shop-id',
+      clientId: 'billing',
+      name: 'admin',
+      description: null,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+    });
+    roles.roles.push(clientAdmin);
+    await roles.assign({
+      realmId: 'shop-id',
+      userId: carla,
+      roleId: clientAdmin.id,
+    });
+
+    await expect(
+      authorizer.canAdminister(principal('shop', carla), 'shop'),
+    ).resolves.toBe(false);
     await expect(authorizer.isLastEnabledAdmin('shop', ana)).resolves.toBe(
       true,
     );
