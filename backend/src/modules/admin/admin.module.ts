@@ -14,9 +14,11 @@ import { ListUserRolesUseCase } from './application/use-cases/list-user-roles.us
 import { UnassignUserRoleUseCase } from './application/use-cases/unassign-user-role.use-case.js';
 import { UpdateRealmUseCase } from './application/use-cases/update-realm.use-case.js';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case.js';
+import { AdminClientRolesController } from './presentation/controllers/admin-client-roles.controller.js';
 import { AdminClientsController } from './presentation/controllers/admin-clients.controller.js';
 import { AdminRealmsController } from './presentation/controllers/admin-realms.controller.js';
 import { AdminRolesController } from './presentation/controllers/admin-roles.controller.js';
+import { AdminUserClientRolesController } from './presentation/controllers/admin-user-client-roles.controller.js';
 import { AdminUserRolesController } from './presentation/controllers/admin-user-roles.controller.js';
 import { AdminUsersController } from './presentation/controllers/admin-users.controller.js';
 import { AdminGuard } from './presentation/guards/admin.guard.js';
@@ -35,6 +37,8 @@ import { AdminGuard } from './presentation/guards/admin.guard.js';
     AdminRolesController,
     AdminUserRolesController,
     AdminClientsController,
+    AdminClientRolesController,
+    AdminUserClientRolesController,
   ],
   providers: [
     RealmResourceFinder,
