@@ -3,44 +3,49 @@ import { describe, expect, it } from 'vitest'
 import { adminHttp } from '@/shared/api'
 import { fakeAdapter } from '@/shared/api/testing/fake-adapter.ts'
 import type { FakeResponse } from '@/shared/api/testing/fake-adapter.ts'
-import { createRealmRole, deleteRealmRole, listRealmRoles } from './role-api.ts'
+import {
+  assignUserRole,
+  createRole,
+  deleteRole,
+  listRoles,
+  listUserRoles,
+  unassignUserRole,
+} from './role-api.ts'
 
 const admin = {
   id: '1',
   name: 'admin',
   description: 'Administers the realm',
 }
+const realm = { realm: 'shop' }
+const client = { realm: 'shop', clientId: 'billing' }
 
 let lastBody: unknown
 
 function answer(response: FakeResponse) {
-  const urls: (string | undefined)[] = []
+  const requests: string[] = []
   adminHttp.defaults.adapter = fakeAdapter((config) => {
-    urls.push(`${config.method?.toUpperCase()} ${config.url}`)
+    requests.push(`${config.method?.toUpperCase()} ${config.url}`)
     lastBody = config.data
-
     return response
   })
-  return urls
+  return requests
 }
 
-describe('listRealmRoles', () => {
-  it('reads the roles of the realm, keeping only what it uses', async () => {
-    const urls = answer({
+describe('listRoles', () => {
+  it('reads the roles of the scope, keeping only what it uses', async () => {
+    const requests = answer({
       status: 200,
       data: [{ ...admin, createdAt: '2026-11-16T00:00:00.000Z' }],
     })
 
-    await expect(listRealmRoles('shop')).resolves.toEqual([admin])
-    expect(urls).toEqual(['GET /admin/realms/shop/roles'])
-  })
+    await expect(listRoles(realm)).resolves.toEqual([admin])
+    await listRoles(client)
 
-  it('encodes the realm name in the path', async () => {
-    const urls = answer({ status: 200, data: [] })
-
-    await listRealmRoles('a/b')
-
-    expect(urls).toEqual(['GET /admin/realms/a%2Fb/roles'])
+    expect(requests).toEqual([
+      'GET /admin/realms/shop/roles',
+      'GET /admin/realms/shop/clients/billing/roles',
+    ])
   })
 
   it.each([
@@ -50,18 +55,18 @@ describe('listRealmRoles', () => {
   ])('rejects an answer that %s', async (_name, data) => {
     answer({ status: 200, data })
 
-    await expect(listRealmRoles('shop')).rejects.toBeInstanceOf(ZodError)
+    await expect(listRoles(realm)).rejects.toBeInstanceOf(ZodError)
   })
 })
 
-describe('createRealmRole', () => {
+describe('createRole', () => {
   it('posts the new role and reads the created one back', async () => {
-    const urls = answer({ status: 201, data: admin })
+    const requests = answer({ status: 201, data: admin })
 
     await expect(
-      createRealmRole('shop', { name: 'admin', description: 'Administers' }),
+      createRole(client, { name: 'admin', description: 'Administers' }),
     ).resolves.toEqual(admin)
-    expect(urls).toEqual(['POST /admin/realms/shop/roles'])
+    expect(requests).toEqual(['POST /admin/realms/shop/clients/billing/roles'])
     expect(JSON.parse(lastBody as string)).toEqual({
       name: 'admin',
       description: 'Administers',
@@ -69,12 +74,30 @@ describe('createRealmRole', () => {
   })
 })
 
-describe('deleteRealmRole', () => {
+describe('deleteRole', () => {
   it('deletes the role by its encoded name', async () => {
-    const urls = answer({ status: 204 })
+    const requests = answer({ status: 204 })
 
-    await deleteRealmRole('shop', 'billing:read/x')
+    await deleteRole(realm, 'billing:read/x')
 
-    expect(urls).toEqual(['DELETE /admin/realms/shop/roles/billing%3Aread%2Fx'])
+    expect(requests).toEqual([
+      'DELETE /admin/realms/shop/roles/billing%3Aread%2Fx',
+    ])
+  })
+})
+
+describe('user roles', () => {
+  it('lists, gives and takes the roles of a user in a scope', async () => {
+    const requests = answer({ status: 200, data: [admin] })
+
+    await expect(listUserRoles(client, 'u1')).resolves.toEqual([admin])
+    await assignUserRole(client, 'u1', 'viewer')
+    await unassignUserRole(realm, 'u1', 'admin')
+
+    expect(requests).toEqual([
+      'GET /admin/realms/shop/users/u1/client-roles/billing',
+      'PUT /admin/realms/shop/users/u1/client-roles/billing/viewer',
+      'DELETE /admin/realms/shop/users/u1/roles/admin',
+    ])
   })
 })

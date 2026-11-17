@@ -1,24 +1,20 @@
-import { Link } from '@tanstack/react-router'
-import { CreateRealmRoleForm } from '@/features/create-realm-role'
-import { RealmRolesTable } from '@/widgets/realm-roles-table'
+import { CreateRoleForm } from '@/features/create-role'
+import { RolesTable } from '@/widgets/roles-table'
 
 interface RealmRolesPageProps {
   realm: string
 }
 
 export function RealmRolesPage({ realm }: RealmRolesPageProps) {
+  const scope = { realm }
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <Link
-        to="/realms"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Realms
-      </Link>
-      <h1 className="mt-2 mb-1 font-mono text-2xl font-semibold">{realm}</h1>
-      <h2 className="mb-4 text-sm text-muted-foreground">Realm roles</h2>
-      <CreateRealmRoleForm realm={realm} />
-      <RealmRolesTable realm={realm} />
-    </main>
+    <section>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Realm roles apply to the whole realm and go in the{' '}
+        <code className="font-mono">realm_access</code> claim of every token.
+      </p>
+      <CreateRoleForm scope={scope} />
+      <RolesTable scope={scope} />
+    </section>
   )
 }

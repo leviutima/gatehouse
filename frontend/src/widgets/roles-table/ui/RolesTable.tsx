@@ -1,6 +1,4 @@
 import {
-  Alert,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -8,35 +6,28 @@ import {
   TableHeader,
   TableRow,
 } from '@leviutima/ds'
-import { useRealmRolesQuery } from '@/entities/role'
+import { useRolesQuery } from '@/entities/role'
+import type { RoleScope } from '@/entities/role'
 import { SessionExpiredError } from '@/entities/session'
-import { DeleteRealmRoleButton } from '@/features/delete-realm-role'
-import { hasHttpStatus } from '@/shared/api'
+import { DeleteRoleButton } from '@/features/delete-role'
+import { LoadFailed } from '@/shared/ui'
 
-interface RealmRolesTableProps {
-  realm: string
+interface RolesTableProps {
+  scope: RoleScope
 }
 
-export function RealmRolesTable({ realm }: RealmRolesTableProps) {
-  const { data, error, isFetching, refetch } = useRealmRolesQuery(realm)
+export function RolesTable({ scope }: RolesTableProps) {
+  const { data, error, isFetching, refetch } = useRolesQuery(scope)
+  const isRealmScope = scope.clientId === undefined
 
   if ((isFetching && !data) || error instanceof SessionExpiredError) {
     return <p className="text-sm text-muted-foreground">Loading roles…</p>
   }
-  if (hasHttpStatus(error, 404)) {
-    return <Alert tone="error">There is no realm called {realm}.</Alert>
-  }
   if (!data) {
-    return (
-      <div className="flex flex-col items-start gap-4">
-        <Alert tone="error" className="w-full">
-          The roles could not be loaded.
-        </Alert>
-        <Button variant="secondary" onClick={() => void refetch()}>
-          Try again
-        </Button>
-      </div>
-    )
+    return <LoadFailed what="roles" onRetry={() => void refetch()} />
+  }
+  if (data.length === 0) {
+    return <p className="text-sm text-muted-foreground">No roles yet.</p>
   }
   return (
     <Table>
@@ -57,8 +48,8 @@ export function RealmRolesTable({ realm }: RealmRolesTableProps) {
               {role.description ?? '—'}
             </TableCell>
             <TableCell className="text-right whitespace-nowrap">
-              {role.name !== 'admin' && (
-                <DeleteRealmRoleButton realm={realm} roleName={role.name} />
+              {!(isRealmScope && role.name === 'admin') && (
+                <DeleteRoleButton scope={scope} roleName={role.name} />
               )}
             </TableCell>
           </TableRow>

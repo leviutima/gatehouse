@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 const ROLE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/
 
-export const createRealmRoleSchema = z.object({
+export const createRoleSchema = z.object({
   name: z
     .string()
     .min(1, 'Enter a name.')
@@ -13,4 +13,4 @@ export const createRealmRoleSchema = z.object({
   description: z.string().max(255, 'Keep it under 256 characters.'),
 })
 
-export type CreateRealmRoleValues = z.infer<typeof createRealmRoleSchema>
+export type CreateRoleValues = z.infer<typeof createRoleSchema>

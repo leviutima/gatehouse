@@ -1,25 +1,26 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, Button, Field, Input } from '@leviutima/ds'
 import { useForm } from 'react-hook-form'
-import { apiErrorCode } from '@/shared/api'
-import { useCreateRealmRole } from '../api/use-create-realm-role/use-create-realm-role.ts'
-import { createRealmRoleSchema } from '../model/create-realm-role-schema/create-realm-role.schema.ts'
-import type { CreateRealmRoleValues } from '../model/create-realm-role-schema/create-realm-role.schema.ts'
+import type { RoleScope } from '@/entities/role'
+import { apiErrorCode, apiErrorMessage } from '@/shared/api'
+import { useCreateRole } from '../api/use-create-role/use-create-role.ts'
+import { createRoleSchema } from '../model/create-role-schema/create-role.schema.ts'
+import type { CreateRoleValues } from '../model/create-role-schema/create-role.schema.ts'
 
-interface CreateRealmRoleFormProps {
-  realm: string
+interface CreateRoleFormProps {
+  scope: RoleScope
 }
 
-export function CreateRealmRoleForm({ realm }: CreateRealmRoleFormProps) {
-  const createRole = useCreateRealmRole(realm)
+export function CreateRoleForm({ scope }: CreateRoleFormProps) {
+  const createRole = useCreateRole(scope)
   const {
     register,
     handleSubmit,
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<CreateRealmRoleValues>({
-    resolver: zodResolver(createRealmRoleSchema),
+  } = useForm<CreateRoleValues>({
+    resolver: zodResolver(createRoleSchema),
     defaultValues: { name: '', description: '' },
   })
 
@@ -30,13 +31,17 @@ export function CreateRealmRoleForm({ realm }: CreateRealmRoleFormProps) {
     } catch (error) {
       switch (apiErrorCode(error)) {
         case 'role_already_exists':
-          setError('name', { message: 'This realm already has a role with this name.' })
+          setError('name', {
+            message: `This ${scope.clientId === undefined ? 'realm' : 'client'} already has a role with this name.`,
+          })
           break
         case 'invalid_role_name':
-          setError('name', { message: 'Gatehouse does not accept this name.' })
+          setError('name', { message: apiErrorMessage(error) })
           break
         default:
-          setError('root', { message: 'The role could not be created.' })
+          setError('root', {
+            message: apiErrorMessage(error) ?? 'The role could not be created.',
+          })
       }
     }
   })
