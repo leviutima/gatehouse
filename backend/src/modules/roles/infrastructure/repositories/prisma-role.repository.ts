@@ -17,15 +17,15 @@ export class PrismaRoleRepository extends RoleRepository {
   }
 
   async findByName(realmId: string, name: string): Promise<Role | null> {
-    const row = await this.prisma.db.role.findUnique({
-      where: { realmId_name: { realmId, name } },
+    const row = await this.prisma.db.role.findFirst({
+      where: { realmId, clientId: null, name },
     });
     return row ? RoleMapper.toDomain(row) : null;
   }
 
   async list(realmId: string): Promise<Role[]> {
     const rows = await this.prisma.db.role.findMany({
-      where: { realmId },
+      where: { realmId, clientId: null },
       orderBy: { name: 'asc' },
     });
     return rows.map((row) => RoleMapper.toDomain(row));
@@ -74,7 +74,7 @@ export class PrismaRoleRepository extends RoleRepository {
     return this.prisma.db.userRole.count({
       where: {
         user: { enabled: true },
-        role: { name: roleName, realm: { name: realmName } },
+        role: { name: roleName, clientId: null, realm: { name: realmName } },
       },
     });
   }
@@ -88,7 +88,7 @@ export class PrismaRoleRepository extends RoleRepository {
       where: {
         userId,
         user: { enabled: true },
-        role: { name: roleName, realm: { name: realmName } },
+        role: { name: roleName, clientId: null, realm: { name: realmName } },
       },
     });
     return assignments > 0;
