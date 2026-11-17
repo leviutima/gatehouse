@@ -95,6 +95,7 @@ model Client {
 
   authorizationCodes AuthorizationCode[]
   refreshTokens      RefreshToken[]
+  roles              Role[]
 
   @@unique([realmId, clientId])
   @@unique([realmId, id])
@@ -120,15 +121,17 @@ model SigningKey {
 model Role {
   id          String   @id @default(uuid(7)) @db.Uuid
   realmId     String   @map("realm_id") @db.Uuid
+  clientId    String?  @map("client_id") @db.Uuid
   name        String
   description String?
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  realm Realm      @relation(fields: [realmId], references: [id], onDelete: Cascade)
-  users UserRole[]
+  realm  Realm      @relation(fields: [realmId], references: [id], onDelete: Cascade)
+  client Client?    @relation(fields: [realmId, clientId], references: [realmId, id], onDelete: Cascade)
+  users  UserRole[]
 
-  @@unique([realmId, name])
+  @@unique([realmId, clientId, name])
   @@unique([realmId, id])
   @@map("roles")
 }

@@ -108,4 +108,32 @@ describe('AccessTokenIssuer', () => {
       sid: 'session-1',
     });
   });
+
+  it('carries the realm roles and the roles of the requesting client', async () => {
+    const { token } = await issuer.issue({
+      realm,
+      subject: 'user-1',
+      clientId: 'billing',
+      roles: { realm: ['admin', 'viewer'], client: ['invoices:read'] },
+    });
+
+    const { payload } = await verify(token);
+    expect(payload).toMatchObject({
+      realm_access: { roles: ['admin', 'viewer'] },
+      resource_access: { billing: { roles: ['invoices:read'] } },
+    });
+  });
+
+  it('leaves the role claims out when there are no roles', async () => {
+    const { token } = await issuer.issue({
+      realm,
+      subject: 'user-1',
+      clientId: 'billing',
+      roles: { realm: [], client: [] },
+    });
+
+    const { payload } = await verify(token);
+    expect(payload).not.toHaveProperty('realm_access');
+    expect(payload).not.toHaveProperty('resource_access');
+  });
 });

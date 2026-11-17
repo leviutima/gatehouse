@@ -6,6 +6,7 @@ import { RealmResourceFinder } from '../services/realm-resource-finder.js';
 
 export interface CreateRoleInput {
   realmName: string;
+  clientId?: string;
   name: string;
   description?: string;
 }
@@ -19,6 +20,7 @@ export class CreateRoleUseCase {
 
   async execute({
     realmName,
+    clientId,
     name,
     description,
   }: CreateRoleInput): Promise<Role> {
@@ -26,6 +28,7 @@ export class CreateRoleUseCase {
     const realm = await this.finder.realm(realmName);
     return this.roles.create({
       realmId: realm.id,
+      clientId: await this.finder.roleScope(realm, clientId),
       name,
       description: description?.trim() || null,
     });

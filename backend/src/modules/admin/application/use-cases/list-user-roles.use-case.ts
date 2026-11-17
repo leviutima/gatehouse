@@ -5,6 +5,7 @@ import { RealmResourceFinder } from '../services/realm-resource-finder.js';
 
 export interface ListUserRolesInput {
   realmName: string;
+  clientId?: string;
   userId: string;
 }
 
@@ -15,9 +16,16 @@ export class ListUserRolesUseCase {
     private readonly roles: RoleRepository,
   ) {}
 
-  async execute({ realmName, userId }: ListUserRolesInput): Promise<Role[]> {
+  async execute({
+    realmName,
+    clientId,
+    userId,
+  }: ListUserRolesInput): Promise<Role[]> {
     const realm = await this.finder.realm(realmName);
     const user = await this.finder.user(realm, userId);
-    return this.roles.listForUser(user.id);
+    return this.roles.listForUser(
+      user.id,
+      await this.finder.roleScope(realm, clientId),
+    );
   }
 }
