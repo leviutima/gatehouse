@@ -20,40 +20,50 @@ export class InMemoryRoleRepository extends RoleRepository {
     super();
   }
 
-  findByName(realmId: string, name: string): Promise<Role | null> {
+  findByName(
+    realmId: string,
+    name: string,
+    clientId: string | null = null,
+  ): Promise<Role | null> {
     return Promise.resolve(
       this.roles.find(
         (role) =>
-          role.realmId === realmId && role.isRealmRole && role.name === name,
+          role.realmId === realmId &&
+          role.clientId === clientId &&
+          role.name === name,
       ) ?? null,
     );
   }
 
-  list(realmId: string): Promise<Role[]> {
+  list(realmId: string, clientId: string | null = null): Promise<Role[]> {
     return Promise.resolve(
       this.roles
-        .filter((role) => role.realmId === realmId && role.isRealmRole)
+        .filter(
+          (role) => role.realmId === realmId && role.clientId === clientId,
+        )
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
   }
 
-  listForUser(userId: string): Promise<Role[]> {
+  listForUser(userId: string, clientId: string | null = null): Promise<Role[]> {
     const roleIds = this.assignments
       .filter((assignment) => assignment.userId === userId)
       .map(({ roleId }) => roleId);
     return Promise.resolve(
       this.roles
-        .filter((role) => roleIds.includes(role.id))
+        .filter(
+          (role) => roleIds.includes(role.id) && role.clientId === clientId,
+        )
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
   }
 
-  create(data: CreateRoleData): Promise<Role> {
+  create({ clientId = null, ...data }: CreateRoleData): Promise<Role> {
     if (
       this.roles.some(
         (role) =>
           role.realmId === data.realmId &&
-          role.isRealmRole &&
+          role.clientId === clientId &&
           role.name === data.name,
       )
     ) {
@@ -61,9 +71,9 @@ export class InMemoryRoleRepository extends RoleRepository {
     }
     const role = new Role({
       id: `role-${this.roles.length + 1}`,
-      clientId: null,
       createdAt: TEST_NOW,
       updatedAt: TEST_NOW,
+      clientId,
       ...data,
     });
     this.roles.push(role);
