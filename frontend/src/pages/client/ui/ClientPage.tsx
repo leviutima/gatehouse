@@ -1,13 +1,11 @@
-import { Alert } from '@leviutima/ds'
-import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
+import { Alert, Badge } from '@leviutima/ds'
 import { useClientQuery } from '@/entities/client'
 import { SessionExpiredError } from '@/entities/session'
 import { EditClientForm } from '@/features/client-settings'
 import { CreateRoleForm } from '@/features/create-role'
 import { RotateClientSecret } from '@/features/rotate-client-secret'
 import { hasHttpStatus } from '@/shared/api'
-import { LoadFailed } from '@/shared/ui'
+import { LoadFailed, PageHeader, SettingsSection } from '@/shared/ui'
 import { RolesTable } from '@/widgets/roles-table'
 
 interface ClientPageProps {
@@ -15,68 +13,54 @@ interface ClientPageProps {
   clientId: string
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="border-t border-border pt-6">
-      <h3 className="mb-4 text-base font-semibold">{title}</h3>
-      {children}
-    </section>
-  )
-}
-
 export function ClientPage({ realm, clientId }: ClientPageProps) {
   const { data, error, isFetching, refetch } = useClientQuery(realm, clientId)
-
-  const back = (
-    <Link
-      to="/realms/$realm/clients"
-      params={{ realm }}
-      className="text-sm text-muted-foreground hover:text-foreground"
-    >
-      ← Clients
-    </Link>
-  )
 
   if ((isFetching && !data) || error instanceof SessionExpiredError) {
     return <p className="text-sm text-muted-foreground">Loading client…</p>
   }
   if (hasHttpStatus(error, 404)) {
-    return (
-      <div className="flex flex-col items-start gap-4">
-        {back}
-        <Alert tone="error">There is no client called {clientId}.</Alert>
-      </div>
-    )
+    return <Alert tone="error">There is no client called {clientId}.</Alert>
   }
   if (!data) {
     return <LoadFailed what="client" onRetry={() => void refetch()} />
   }
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        {back}
-        <h2 className="mt-2 text-lg font-semibold">
-          <span className="font-mono">{data.clientId}</span>
-          <span className="ml-2 font-normal text-muted-foreground">{data.name}</span>
-        </h2>
-      </div>
-      <Section title="Settings">
-        <EditClientForm key={data.id} realm={realm} client={data} />
-      </Section>
+    <>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-3">
+            <span className="font-mono">{data.clientId}</span>
+            <Badge variant="outline">
+              {data.type === 'PUBLIC' ? 'Public' : 'Confidential'}
+            </Badge>
+            {!data.enabled && <Badge variant="outline">Disabled</Badge>}
+          </span>
+        }
+        description={data.name}
+      />
+      <EditClientForm key={data.id} realm={realm} client={data} />
       {data.type === 'CONFIDENTIAL' && (
-        <Section title="Secret">
+        <SettingsSection
+          title="Secret"
+          description="The password this client uses to get tokens. Gatehouse only stores its hash."
+        >
           <RotateClientSecret realm={realm} clientId={data.clientId} />
-        </Section>
+        </SettingsSection>
       )}
-      <Section title="Client roles">
-        <p className="mb-4 text-sm text-muted-foreground">
-          Roles that only mean something to this client. They go in{' '}
-          <code className="font-mono">resource_access.{data.clientId}</code> of
-          the tokens this client receives.
-        </p>
+      <SettingsSection
+        title="Client roles"
+        description={
+          <>
+            Roles that only mean something to this client. They go in{' '}
+            <code className="font-mono">resource_access.{data.clientId}</code>{' '}
+            of the tokens this client receives.
+          </>
+        }
+      >
         <CreateRoleForm scope={{ realm, clientId: data.clientId }} />
         <RolesTable scope={{ realm, clientId: data.clientId }} />
-      </Section>
-    </div>
+      </SettingsSection>
+    </>
   )
 }

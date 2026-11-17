@@ -1,17 +1,21 @@
 import { buttonVariants } from '@leviutima/ds'
 import { Link } from '@tanstack/react-router'
+import { PageHeader } from '@/shared/ui'
 import { RealmsTable } from '@/widgets/realms-table'
 
 export function RealmsPage() {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Realms</h1>
-        <Link to="/realms/new" className={buttonVariants({ size: 'sm' })}>
-          New realm
-        </Link>
-      </div>
+    <>
+      <PageHeader
+        title="Realms"
+        description="Each realm has its own users, clients, roles and signing keys. Tokens from one realm are never accepted by another."
+        actions={
+          <Link to="/realms/new" className={buttonVariants({ size: 'sm' })}>
+            New realm
+          </Link>
+        }
+      />
       <RealmsTable />
-    </main>
+    </>
   )
 }

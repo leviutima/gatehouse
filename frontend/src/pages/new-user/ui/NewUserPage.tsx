@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useRealmQuery } from '@/entities/realm'
 import { CreateUserForm } from '@/features/create-user'
+import { PageHeader } from '@/shared/ui'
 
 interface NewUserPageProps {
   realm: string
@@ -11,8 +12,8 @@ export function NewUserPage({ realm }: NewUserPageProps) {
   const { data } = useRealmQuery(realm)
 
   return (
-    <section>
-      <h2 className="mb-4 text-lg font-semibold">New user</h2>
+    <>
+      <PageHeader title="New user" />
       {data && (
         <CreateUserForm
           realm={realm}
@@ -25,6 +26,6 @@ export function NewUserPage({ realm }: NewUserPageProps) {
           }
         />
       )}
-    </section>
+    </>
   )
 }
