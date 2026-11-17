@@ -1,13 +1,15 @@
 import { Button } from '@leviutima/ds'
+import { RouterProvider } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useSession } from '@/entities/session'
 import type { SessionUser } from '@/entities/session'
-import { RealmsPage } from '@/pages/realms'
 import { AppHeader } from '@/widgets/app-header'
+import { createAppRouter } from './router/router.tsx'
+import type { AppRouter } from './router/router.tsx'
 
 type AppState =
   | { kind: 'starting' }
-  | { kind: 'signed_in'; user: SessionUser }
+  | { kind: 'signed_in'; user: SessionUser; router: AppRouter }
   | { kind: 'failed'; message: string }
 
 export function App() {
@@ -18,7 +20,11 @@ export function App() {
     session.start().then(
       (result) => {
         if (result.kind === 'signed_in') {
-          setState({ kind: 'signed_in', user: result.user })
+          setState({
+            kind: 'signed_in',
+            user: result.user,
+            router: createAppRouter(),
+          })
         }
       },
       (error: unknown) => {
@@ -45,7 +51,7 @@ export function App() {
       return (
         <>
           <AppHeader username={state.user.username} />
-          <RealmsPage />
+          <RouterProvider router={state.router} />
         </>
       )
   }
