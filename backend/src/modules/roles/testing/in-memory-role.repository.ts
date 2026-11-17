@@ -23,7 +23,8 @@ export class InMemoryRoleRepository extends RoleRepository {
   findByName(realmId: string, name: string): Promise<Role | null> {
     return Promise.resolve(
       this.roles.find(
-        (role) => role.realmId === realmId && role.name === name,
+        (role) =>
+          role.realmId === realmId && role.isRealmRole && role.name === name,
       ) ?? null,
     );
   }
@@ -31,7 +32,7 @@ export class InMemoryRoleRepository extends RoleRepository {
   list(realmId: string): Promise<Role[]> {
     return Promise.resolve(
       this.roles
-        .filter((role) => role.realmId === realmId)
+        .filter((role) => role.realmId === realmId && role.isRealmRole)
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
   }
@@ -50,13 +51,17 @@ export class InMemoryRoleRepository extends RoleRepository {
   create(data: CreateRoleData): Promise<Role> {
     if (
       this.roles.some(
-        (role) => role.realmId === data.realmId && role.name === data.name,
+        (role) =>
+          role.realmId === data.realmId &&
+          role.isRealmRole &&
+          role.name === data.name,
       )
     ) {
       return Promise.reject(new RoleAlreadyExistsError(data.name));
     }
     const role = new Role({
       id: `role-${this.roles.length + 1}`,
+      clientId: null,
       createdAt: TEST_NOW,
       updatedAt: TEST_NOW,
       ...data,
@@ -137,7 +142,10 @@ export class InMemoryRoleRepository extends RoleRepository {
   private roleIn(realmName: string, roleName: string): Role | undefined {
     const realm = this.realms.realms.find(({ name }) => name === realmName);
     return this.roles.find(
-      (role) => role.realmId === realm?.id && role.name === roleName,
+      (role) =>
+        role.realmId === realm?.id &&
+        role.isRealmRole &&
+        role.name === roleName,
     );
   }
 
