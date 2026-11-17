@@ -7,6 +7,7 @@ import { realmQueryKey, realmsQueryKey, updateRealm } from '@/entities/realm'
 import type { Realm, RealmSettings } from '@/entities/realm'
 import { apiErrorCode, apiErrorMessage } from '@/shared/api'
 import { formatDuration } from '@/shared/lib/duration'
+import { FormFooter, SettingsSection } from '@/shared/ui'
 
 const wholeNumber = z.number({ error: 'Enter a whole number.' }).int('Enter a whole number.')
 
@@ -92,42 +93,56 @@ export function RealmSettingsForm({ realm }: RealmSettingsFormProps) {
   })
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex max-w-lg flex-col gap-4">
-      <Field label="Display name" error={errors.displayName?.message} required>
-        <Input {...register('displayName')} autoComplete="off" />
-      </Field>
-      <Field
-        label="Minimum password length"
-        hint="Applies to new passwords. Never below 8."
-        error={errors.passwordMinLength?.message}
-      >
-        <Input {...register('passwordMinLength', { valueAsNumber: true })} type="number" className="max-w-32" />
-      </Field>
-      {durations.map((duration, index) => (
+    <form onSubmit={onSubmit} noValidate>
+      <SettingsSection title="General" description="The name people see for this realm, and whether it accepts sign-ins.">
+        <div className="flex max-w-xl flex-col gap-4">
+          <Field label="Display name" error={errors.displayName?.message} required>
+            <Input {...register('displayName')} autoComplete="off" />
+          </Field>
+          <div>
+            <Switch {...register('enabled')} label="Enabled" />
+            <p className="mt-1 text-xs text-muted-foreground">
+              A disabled realm rejects sign-ins and its tokens stop working.
+            </p>
+          </div>
+        </div>
+      </SettingsSection>
+      <SettingsSection title="Passwords" description="The rule for passwords set from now on. Existing passwords keep working.">
         <Field
-          key={duration.name}
-          label={`${duration.label} (seconds)`}
-          hint={[formatDuration(lifespans[index]), duration.hint].filter(Boolean).join(' · ')}
-          error={errors[duration.name]?.message}
+          label="Minimum length"
+          hint="Never below 8."
+          error={errors.passwordMinLength?.message}
         >
-          <Input {...register(duration.name, { valueAsNumber: true })} type="number" className="max-w-32" />
+          <Input {...register('passwordMinLength', { valueAsNumber: true })} type="number" className="max-w-32" />
         </Field>
-      ))}
-      <Switch {...register('enabled')} label="Enabled" />
-      <p className="-mt-2 text-xs text-muted-foreground">
-        A disabled realm rejects sign-ins and its tokens stop working.
-      </p>
-      {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
-      <div className="flex items-center gap-3">
-        <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
-          Save changes
-        </Button>
-        {isSubmitSuccessful && !isDirty && (
-          <span className="text-sm text-muted-foreground" role="status">
-            Saved.
-          </span>
-        )}
-      </div>
+      </SettingsSection>
+      <SettingsSection title="Tokens and sessions" description="Durations in seconds. Shorter is safer; longer asks users to sign in less often.">
+        <div className="flex max-w-xl flex-col gap-4">
+          {durations.map((duration, index) => (
+            <Field
+              key={duration.name}
+              label={duration.label}
+              hint={[formatDuration(lifespans[index]), duration.hint].filter(Boolean).join(' · ')}
+              error={errors[duration.name]?.message}
+            >
+              <Input {...register(duration.name, { valueAsNumber: true })} type="number" className="max-w-32" />
+            </Field>
+          ))}
+        </div>
+      </SettingsSection>
+      <FormFooter>
+        {errors.root && <Alert tone="error">{errors.root.message}</Alert>}
+        <div className="flex items-center gap-3">
+          <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
+            Save changes
+          </Button>
+          {isSubmitSuccessful && !isDirty && (
+            <span className="text-sm text-muted-foreground" role="status">
+              Saved.
+            </span>
+          )}
+        </div>
+      </FormFooter>
     </form>
   )
 }
