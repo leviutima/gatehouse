@@ -10,8 +10,11 @@ export class ListRolesUseCase {
     private readonly roles: RoleRepository,
   ) {}
 
-  async execute(realmName: string): Promise<Role[]> {
+  async execute(realmName: string, clientId?: string): Promise<Role[]> {
     const realm = await this.finder.realm(realmName);
-    return this.roles.list(realm.id);
+    return this.roles.list(
+      realm.id,
+      await this.finder.roleScope(realm, clientId),
+    );
   }
 }
