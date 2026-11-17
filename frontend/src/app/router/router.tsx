@@ -1,13 +1,15 @@
 import {
-  createRootRoute,
+  createRootRouteWithContext,
   createRoute,
   createRouter,
   redirect,
 } from '@tanstack/react-router'
 import { z } from 'zod'
+import type { SessionUser } from '@/entities/session'
 import { NewRealmPage } from '@/pages/new-realm'
 import { RealmsPage } from '@/pages/realms'
 import {
+  AppLayoutRoute,
   ClientRoute,
   ClientsRoute,
   NewClientRoute,
@@ -20,7 +22,14 @@ import {
   UsersRoute,
 } from './route-components.tsx'
 
-const rootRoute = createRootRoute({ notFoundComponent: NotFound })
+export interface RouterContext {
+  user: SessionUser
+}
+
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: AppLayoutRoute,
+  notFoundComponent: NotFound,
+})
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -33,18 +42,26 @@ const indexRoute = createRoute({
 const realmsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/realms',
+  staticData: { crumb: () => 'Realms' },
+})
+
+const realmsIndexRoute = createRoute({
+  getParentRoute: () => realmsRoute,
+  path: '/',
   component: RealmsPage,
 })
 
 const newRealmRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/realms/new',
+  getParentRoute: () => realmsRoute,
+  path: 'new',
+  staticData: { crumb: () => 'New realm' },
   component: NewRealmPage,
 })
 
 const realmRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/realms/$realm',
+  getParentRoute: () => realmsRoute,
+  path: '$realm',
+  staticData: { crumb: (params) => params.realm },
   component: RealmLayoutRoute,
 })
 
@@ -63,12 +80,14 @@ const realmIndexRoute = createRoute({
 const realmRolesRoute = createRoute({
   getParentRoute: () => realmRoute,
   path: 'roles',
+  staticData: { crumb: () => 'Roles' },
   component: RealmRolesRoute,
 })
 
 const clientsRoute = createRoute({
   getParentRoute: () => realmRoute,
   path: 'clients',
+  staticData: { crumb: () => 'Clients' },
 })
 
 const clientsIndexRoute = createRoute({
@@ -80,12 +99,14 @@ const clientsIndexRoute = createRoute({
 const newClientRoute = createRoute({
   getParentRoute: () => clientsRoute,
   path: 'new',
+  staticData: { crumb: () => 'New client' },
   component: NewClientRoute,
 })
 
 const clientRoute = createRoute({
   getParentRoute: () => clientsRoute,
   path: '$clientId',
+  staticData: { crumb: (params) => params.clientId },
   component: ClientRoute,
 })
 
@@ -96,6 +117,7 @@ const usersSearchSchema = z.object({
 const usersRoute = createRoute({
   getParentRoute: () => realmRoute,
   path: 'users',
+  staticData: { crumb: () => 'Users' },
 })
 
 const usersIndexRoute = createRoute({
@@ -108,36 +130,41 @@ const usersIndexRoute = createRoute({
 const newUserRoute = createRoute({
   getParentRoute: () => usersRoute,
   path: 'new',
+  staticData: { crumb: () => 'New user' },
   component: NewUserRoute,
 })
 
 const userRoute = createRoute({
   getParentRoute: () => usersRoute,
   path: '$userId',
+  staticData: { crumb: () => 'User' },
   component: UserRoute,
 })
 
 const realmSettingsRoute = createRoute({
   getParentRoute: () => realmRoute,
   path: 'settings',
+  staticData: { crumb: () => 'Settings' },
   component: RealmSettingsRoute,
 })
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  realmsRoute,
-  newRealmRoute,
-  realmRoute.addChildren([
-    realmIndexRoute,
-    realmRolesRoute,
-    clientsRoute.addChildren([clientsIndexRoute, newClientRoute, clientRoute]),
-    usersRoute.addChildren([usersIndexRoute, newUserRoute, userRoute]),
-    realmSettingsRoute,
+  realmsRoute.addChildren([
+    realmsIndexRoute,
+    newRealmRoute,
+    realmRoute.addChildren([
+      realmIndexRoute,
+      realmRolesRoute,
+      clientsRoute.addChildren([clientsIndexRoute, newClientRoute, clientRoute]),
+      usersRoute.addChildren([usersIndexRoute, newUserRoute, userRoute]),
+      realmSettingsRoute,
+    ]),
   ]),
 ])
 
-export function createAppRouter() {
-  return createRouter({ routeTree })
+export function createAppRouter(user: SessionUser) {
+  return createRouter({ routeTree, context: { user } })
 }
 
 export type AppRouter = ReturnType<typeof createAppRouter>
@@ -145,5 +172,9 @@ export type AppRouter = ReturnType<typeof createAppRouter>
 declare module '@tanstack/react-router' {
   interface Register {
     router: AppRouter
+  }
+
+  interface StaticDataRouteOption {
+    crumb?: (params: Record<string, string>) => string
   }
 }
