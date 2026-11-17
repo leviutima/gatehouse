@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { CreateRealmRoleForm } from '@/features/create-realm-role'
 import { RealmRolesTable } from '@/widgets/realm-roles-table'
 
 interface RealmRolesPageProps {
@@ -16,6 +17,7 @@ export function RealmRolesPage({ realm }: RealmRolesPageProps) {
       </Link>
       <h1 className="mt-2 mb-1 font-mono text-2xl font-semibold">{realm}</h1>
       <h2 className="mb-4 text-sm text-muted-foreground">Realm roles</h2>
+      <CreateRealmRoleForm realm={realm} />
       <RealmRolesTable realm={realm} />
     </main>
   )
